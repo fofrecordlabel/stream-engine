@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url  = import.meta.env.VITE_SUPABASE_URL
-const key  = import.meta.env.VITE_SUPABASE_ANON_KEY
+/** Production Supabase project (public URL). Override with VITE_SUPABASE_URL. */
+export const STREAMENGINE_SUPABASE_URL = 'https://rltejlyhvhlivskbezkx.supabase.co'
 
-export const isDemo = !url || !key
+const url = import.meta.env.VITE_SUPABASE_URL || STREAMENGINE_SUPABASE_URL
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+
+/* Anon key is required for real auth/data; URL alone enables a consistent project target in builds. */
+export const isDemo = !key
 
 export const supabase = isDemo
   ? null
@@ -19,7 +23,7 @@ export const supabase = isDemo
     })
 
 if (isDemo) {
-  console.info('[StreamEngine] Running in demo mode — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY to enable backend')
+  console.info('[StreamEngine] Demo mode — set VITE_SUPABASE_ANON_KEY (Project Settings → API) to connect to Supabase.')
 }
 
 /* ── generic helpers ─────────────────────────────────────── */

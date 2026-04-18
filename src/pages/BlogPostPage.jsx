@@ -22,7 +22,7 @@ export default function BlogPostPage({ setPage, postId, onBack }) {
       <NavBar setPage={setPage} scrolled={scrolled} />
 
       {/* Article container */}
-      <div style={{ maxWidth:680, margin:'0 auto', padding:'100px 24px 100px' }}>
+      <div className="se-shell" style={{ maxWidth:680, margin:'0 auto', paddingTop:100, paddingBottom:100 }}>
 
         {/* Back link */}
         <button onClick={onBack}

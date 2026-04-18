@@ -30,7 +30,7 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: SUPABASE_URL
-        sync: false
+        value: https://rltejlyhvhlivskbezkx.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: STRIPE_SUBSCRIPTION_PRICE_ID

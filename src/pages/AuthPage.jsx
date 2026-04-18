@@ -149,18 +149,20 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:T.bg, color:T.w, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'24px 16px' }}>
-      {/* Back to home */}
-      <div style={{ position:'fixed', top:0, left:0, right:0, padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <BrandMark onClick={() => setPage('home')} size={26} />
-        {demoMode && (
-          <div style={{ padding:'4px 12px', background:'rgba(255,199,64,.1)', border:'1px solid rgba(255,199,64,.25)', borderRadius:20, fontSize:11, fontWeight:700, color:T.gold }}>
-            Demo Mode
-          </div>
-        )}
+    <div style={{ minHeight:'100vh', background:T.bg, color:T.w, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'72px 0 24px' }}>
+      {/* Back to home — aligned with site shell */}
+      <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, background:'rgba(5,5,6,.92)', backdropFilter:'blur(20px)', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
+        <div className="se-shell" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:58 }}>
+          <BrandMark onClick={() => setPage('home')} size={26} />
+          {demoMode && (
+            <div style={{ padding:'4px 12px', background:'rgba(255,199,64,.1)', border:'1px solid rgba(255,199,64,.25)', borderRadius:20, fontSize:11, fontWeight:700, color:T.gold }}>
+              Demo Mode
+            </div>
+          )}
+        </div>
       </div>
 
-      <div style={{ width:'100%', maxWidth:420, animation:'scaleIn .25s cubic-bezier(.34,1.56,.64,1)' }}>
+      <div className="se-shell" style={{ width:'100%', maxWidth:440, animation:'scaleIn .25s cubic-bezier(.34,1.56,.64,1)' }}>
         {pendingImport?.song && (
           <div style={{ marginBottom:18, padding:'12px 14px', borderRadius:14, border:`1px solid ${T.gnB}`, background:T.gnGl }}>
             <div style={{ fontWeight:800, fontSize:12.5, color:T.gn, marginBottom:4, letterSpacing:'.02em' }}>Track loaded</div>

@@ -206,10 +206,10 @@ export default function BlogPage({ setPage, onPost }) {
     <div style={{ minHeight:'100vh', background:T.bg, color:T.w }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
 
-      <div style={{ maxWidth:860, margin:'0 auto', padding:'100px 24px 80px' }}>
+      <div className="se-shell" style={{ maxWidth:860, margin:'0 auto', paddingTop:100, paddingBottom:80 }}>
 
         {/* Editorial header */}
-        <div style={{ marginBottom:52, paddingBottom:40, borderBottom:`1px solid ${T.b0}` }}>
+        <div style={{ marginBottom:52, paddingBottom:40, borderBottom:`1px solid ${T.b0}`, textAlign:'center' }}>
           <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'.16em', textTransform:'uppercase',
                         color:T.g400, marginBottom:16 }}>
             StreamEngine Journal
@@ -218,7 +218,7 @@ export default function BlogPage({ setPage, onPost }) {
                        lineHeight:1.06, color:T.w, marginBottom:16 }}>
             For artists who take<br/>their music seriously.
           </h1>
-          <p style={{ fontSize:16, color:T.g300, lineHeight:1.65, maxWidth:480 }}>
+          <p style={{ fontSize:16, color:T.g300, lineHeight:1.65, maxWidth:560, margin:'0 auto' }}>
             Curation strategy, platform growth, and everything between your upload and your first 10,000 streams.
           </p>
         </div>

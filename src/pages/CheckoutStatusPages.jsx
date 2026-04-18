@@ -21,18 +21,18 @@ function Layout({ setPage, title, subtitle, tone = 'success', children }) {
   return (
     <div style={{ minHeight:'100vh', background:T.bg, color:T.w }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
-      <div style={{ maxWidth:900, margin:'0 auto', padding:'110px 24px 72px' }}>
+      <div className="se-shell" style={{ maxWidth:720, margin:'0 auto', paddingTop:110, paddingBottom:72, textAlign:'center' }}>
         <div style={{ display:'inline-block', padding:'5px 14px', borderRadius:999, background:bg, border:`1px solid ${bc}`, color:c, fontWeight:900, fontSize:11.5, letterSpacing:'.08em', textTransform:'uppercase', marginBottom:18 }}>
           Billing
         </div>
         <h1 style={{ fontSize:'clamp(28px,4.5vw,44px)', fontWeight:900, letterSpacing:'-.03em', marginBottom:10 }}>{title}</h1>
-        <p style={{ color:T.g200, fontSize:16, lineHeight:1.7, maxWidth:740, marginBottom:28 }}>{subtitle}</p>
+        <p style={{ color:T.g200, fontSize:16, lineHeight:1.7, maxWidth:560, margin:'0 auto 28px' }}>{subtitle}</p>
 
-        <div style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:18, padding:'20px 20px' }}>
+        <div style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:18, padding:'20px 20px', textAlign:'left' }}>
           {children}
         </div>
 
-        <div style={{ marginTop:18, display:'flex', gap:10, flexWrap:'wrap' }}>
+        <div style={{ marginTop:18, display:'flex', gap:10, flexWrap:'wrap', justifyContent:'center' }}>
           <button type="button" className="bp" onClick={() => { try { sessionStorage.setItem(PENDING_BILLING, 'billing') } catch {} ; setPage('artist') }} style={{ padding:'10px 16px' }}>Go to Billing →</button>
           <button type="button" className="bt" onClick={() => setPage('artist')} style={{ padding:'10px 16px' }}>Back to Dashboard</button>
         </div>

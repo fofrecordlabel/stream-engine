@@ -13,6 +13,8 @@
   VITE_APP_URL = "https://streamenginev1.netlify.app"
   # Must match the URL of your deployed Express API (see render.yaml → service name).
   VITE_API_ORIGIN = "https://streamengine-api.onrender.com"
+  # Supabase project (public ref — safe in repo). Anon key still required: set VITE_SUPABASE_ANON_KEY below or in Netlify UI.
+  VITE_SUPABASE_URL = "https://rltejlyhvhlivskbezkx.supabase.co"
 
 # SPA: client-side routing
 [[redirects]]
@@ -20,7 +22,6 @@
   to = "/index.html"
   status = 200
 
-# If the Netlify build shows demo / missing data, add these under [build.environment] (anon + publishable keys are public):
-# VITE_SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
+# If the Netlify build still shows demo mode, add under [build.environment] (anon key is public in the client):
 # VITE_SUPABASE_ANON_KEY = "eyJhbG..."
 # VITE_STRIPE_PUBLISHABLE_KEY = "pk_live_..."

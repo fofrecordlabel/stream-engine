@@ -18,9 +18,11 @@ export default function GetStartedScreen({ setPage }) {
 
   return (
     <div style={{ background:T.bg, color:T.w, minHeight:"100vh", width:"100%", overflowX:"hidden", display:"flex", flexDirection:"column" }}>
-      <div style={{ height:58, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 20px", borderBottom:"1px solid rgba(255,255,255,.05)", background:"rgba(5,5,6,.98)", backdropFilter:"blur(20px)", flexShrink:0 }}>
-        <BrandMark onClick={() => setPage("home")} size={26} />
-        <button className="bt" onClick={() => setPage("home")} style={{ fontSize:13 }}>← Back</button>
+      <div style={{ borderBottom:"1px solid rgba(255,255,255,.05)", background:"rgba(5,5,6,.98)", backdropFilter:"blur(20px)", flexShrink:0 }}>
+        <div className="se-shell" style={{ height:58, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <BrandMark onClick={() => setPage("home")} size={26} />
+          <button type="button" className="bt" onClick={() => setPage("home")} style={{ fontSize:13 }}>← Back</button>
+        </div>
       </div>
 
       <div style={{ display:"flex", justifyContent:"center", gap:8, padding:"22px 0 0" }}>
@@ -32,7 +34,7 @@ export default function GetStartedScreen({ setPage }) {
         Playlist Push
       </div>
 
-      <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", padding:"32px 20px 80px", maxWidth:600, margin:"0 auto", width:"100%" }}>
+      <div className="se-shell" style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", paddingTop:32, paddingBottom:80, maxWidth:600, width:"100%" }}>
         <div style={{ width:"100%", animation:"fadeUp .4s ease both" }}>
           <div style={{ textAlign:"center", marginBottom:28 }}>
             <div style={{ fontSize:36, marginBottom:12 }}>{selected ? '✓' : '🎵'}</div>

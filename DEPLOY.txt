@@ -2,8 +2,8 @@ StreamEngine — deploy from GitHub (minimal clicks)
 ===================================================
 
 What is already IN THE REPO (no Netlify env screen needed for these):
-  • netlify.toml  → build command, SPA routing, VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_API_ORIGIN
-  • render.yaml     → API on Render with Spotify client id + CORS to your Netlify site
+  • netlify.toml  → build command, SPA routing, VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_API_ORIGIN, VITE_SUPABASE_URL (rltejlyhvhlivskbezkx)
+  • render.yaml     → API on Render with Spotify client id, SUPABASE_URL, + CORS to your Netlify site
 
 You still must add SECRETS once (they must not be committed to Git):
   On Render → streamengine-api → Environment:

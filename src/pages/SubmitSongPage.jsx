@@ -55,17 +55,17 @@ export default function SubmitSongPage({ setPage }) {
   return (
     <div style={{ minHeight:'100vh', background:T.bg, color:T.w }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
-      <div style={{ maxWidth:900, margin:'0 auto', padding:'110px 24px 80px' }}>
+      <div className="se-shell" style={{ maxWidth:720, margin:'0 auto', paddingTop:110, paddingBottom:80, textAlign:'center' }}>
         <div style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 12px', borderRadius:999, background:'rgba(255,255,255,.04)', border:`1px solid ${T.b0}`, color:T.g200, fontWeight:900, fontSize:11.5, letterSpacing:'.08em', textTransform:'uppercase', marginBottom:16 }}>
           Submit song
           {isDemo && <span style={{ color:T.gold }}>Demo</span>}
         </div>
         <h1 style={{ fontSize:'clamp(26px,4.4vw,40px)', fontWeight:900, letterSpacing:'-.03em', marginBottom:10 }}>Paste a Spotify track link</h1>
-        <p style={{ color:T.g200, fontSize:15, marginBottom:22, maxWidth:640, lineHeight:1.7 }}>
+        <p style={{ color:T.g200, fontSize:15, margin:'0 auto 22px', maxWidth:640, lineHeight:1.7 }}>
           This is the single source of truth for submissions. We’ll fetch metadata, save it, and continue you into Playlist Push.
         </p>
 
-        <div style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:18, padding:'18px 18px' }}>
+        <div style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:18, padding:'18px 18px', textAlign:'left' }}>
           <form onSubmit={(e) => { e.preventDefault(); submit() }}>
             <SpotifySearchBar
               value={query}

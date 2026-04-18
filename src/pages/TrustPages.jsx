@@ -14,7 +14,8 @@ function TrustLayout({ setPage, badge, title, subtitle, children }) {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.w }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
-      <div style={{ maxWidth: 980, margin: '0 auto', padding: '110px 24px 64px' }}>
+      <div className="se-shell" style={{ maxWidth: 900, margin: '0 auto', paddingTop: 110, paddingBottom: 64 }}>
+        <div style={{ textAlign: 'center' }}>
         <div style={{
           display: 'inline-block',
           background: 'rgba(255,255,255,.04)',
@@ -34,10 +35,11 @@ function TrustLayout({ setPage, badge, title, subtitle, children }) {
           {title}
         </h1>
         {subtitle && (
-          <p style={{ fontSize: 16, color: T.g200, lineHeight: 1.7, maxWidth: 760, marginBottom: 32 }}>
+          <p style={{ fontSize: 16, color: T.g200, lineHeight: 1.7, maxWidth: 760, margin: '0 auto 32px' }}>
             {subtitle}
           </p>
         )}
+        </div>
 
         <div style={{
           background: `linear-gradient(145deg,${T.card},#0d0d10)`,
@@ -51,7 +53,7 @@ function TrustLayout({ setPage, badge, title, subtitle, children }) {
           {children}
         </div>
 
-        <div style={{ marginTop: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: T.g400, fontSize: 12.5 }}>
+        <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, flexWrap: 'wrap', color: T.g400, fontSize: 12.5 }}>
           <span>© {new Date().getFullYear()} StreamEngine</span>
           <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button className="na" onClick={() => setPage('terms')} style={{ background: 'none', border: 'none', color: T.g300, cursor: 'pointer' }}>Terms</button>

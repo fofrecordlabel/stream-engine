@@ -772,7 +772,7 @@ export default function SettingsPage({ setPage }) {
     <div style={{ minHeight: '100vh', background: T.bg, color: T.w, overflowX: 'hidden' }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
 
-      <div style={{ maxWidth: 1060, margin: '0 auto', padding: '80px 24px 80px', display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+      <div className="se-shell" style={{ maxWidth: 1060, margin: '0 auto', paddingTop: 80, paddingBottom: 80, display: 'flex', gap: 28, alignItems: 'flex-start' }}>
 
         {/* ── Left sidebar ── */}
         <aside style={{ width: 220, flexShrink: 0, position: 'sticky', top: 80 }}>
