@@ -30,7 +30,7 @@ export default function HomePage({ setPage }) {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const goSubscriptions = () => setPage('subscriptions')
+  const goPricingPage = () => setPage('subscriptions')
 
   const isUrl = isSpotifyTrackUrl(query.trim()) || query.includes("spotify:track");
   const displayCurators = []
@@ -104,8 +104,8 @@ export default function HomePage({ setPage }) {
             Get your music<br />onto Spotify<br />
             <span style={{ color:T.gn, animation:"glow 3.5s ease-in-out infinite" }}>playlists.</span>
           </h1>
-          <p className="fu3" style={{ fontSize:"clamp(14.5px,2vw,17.5px)", color:T.g200, lineHeight:1.78, marginBottom:32, maxWidth:480 }}>
-            Paste your Spotify track once, save it to your account, and launch one Playlist Push campaign. Credits-based. Transparent. Fast.
+          <p className="fu3" style={{ fontSize:"clamp(14.5px,2vw,17.5px)", color:T.g200, lineHeight:1.78, marginBottom:32, maxWidth:520 }}>
+            Paste your Spotify track once, save it to your account, and launch one Playlist Push campaign. Credit packs plus optional Pro subscription. Transparent. Fast.
           </p>
           <div className="fu4" style={{ width:"100%", maxWidth:560, marginBottom:16 }}>
             <form onSubmit={e => { e.preventDefault(); continueFromHero(); }} style={{ position:"relative" }}>
@@ -131,7 +131,7 @@ export default function HomePage({ setPage }) {
             <button type="button" className="bp" onClick={() => { if (isUrl) void continueFromHero(); else setPage('get-started') }} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:130 }}>
               {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
             </button>
-            <button type="button" className="bs" onClick={goSubscriptions} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:110 }}>Subscriptions</button>
+            <button type="button" className="bs" onClick={goPricingPage} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:110 }}>Pricing</button>
           </div>
           <div className="fu5" style={{ display:"flex", gap:7, justifyContent:"center", flexWrap:"wrap" }}>
             {[{i:"✓",t:"Verified curators"},{i:"🎯",t:"Multi-select campaign"},{i:"🔒",t:"Credit refund guarantee"},{i:"⚡",t:"18h avg response"}].map(t => (
@@ -236,19 +236,19 @@ export default function HomePage({ setPage }) {
         </div>
       </section>
 
-      {/* SUBSCRIPTIONS */}
-      <section id="subscriptions" style={{ padding:"80px 0", background:T.bg1, borderTop:"1px solid rgba(255,255,255,.05)", scrollMarginTop:"60px" }}>
+      {/* PRICING (plans + credits) */}
+      <section id="pricing" style={{ padding:"80px 0", background:T.bg1, borderTop:"1px solid rgba(255,255,255,.05)", scrollMarginTop:"60px" }}>
         <div className="se-shell" style={{ maxWidth:860 }}>
-          <SectionLabel>Subscriptions</SectionLabel>
-          <h2 style={{ fontSize:"clamp(24px,4vw,40px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:10 }}>Buy credits, submit to curators</h2>
-          <p style={{ color:T.g200, fontSize:15, marginBottom:18 }}>Credits never expire · Stripe checkout</p>
+          <SectionLabel>Pricing</SectionLabel>
+          <h2 style={{ fontSize:"clamp(24px,4vw,40px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:10 }}>Credits & subscriptions</h2>
+          <p style={{ color:T.g200, fontSize:15, marginBottom:18 }}>Credit packs never expire · Optional Pro subscription · Stripe checkout</p>
           <div style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:18, padding:"20px 18px" }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
               <div style={{ color:T.g200, fontSize:13.5, lineHeight:1.6 }}>
-                Open the subscriptions page for plans, or purchase credits from billing in your dashboard.
+                See plan tiers and buy credits in one place — or open billing from your dashboard after sign-in.
               </div>
               <button type="button" className="bp" onClick={() => setPage(isLoggedIn ? 'artist' : 'subscriptions')} style={{ padding:"11px 18px", fontSize:13.5, borderRadius:11 }}>
-                View subscriptions →
+                View pricing →
               </button>
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function HomePage({ setPage }) {
           <p style={{ color:T.g200, fontSize:15.5, marginBottom:32, lineHeight:1.7 }}>Paste your track and submit to real curators in minutes.</p>
           <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap", maxWidth:360, margin:"0 auto" }}>
             <button className="bp" onClick={continueFromHero} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:140 }}>Get Started Free <span className="arr">→</span></button>
-            <button type="button" className="bs" onClick={goSubscriptions} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:110 }}>Subscriptions</button>
+            <button type="button" className="bs" onClick={goPricingPage} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:110 }}>Pricing</button>
           </div>
           <div style={{ marginTop:16, fontSize:13, color:T.g400 }}>No subscription · Credits never expire · Free to browse</div>
         </div>
@@ -311,7 +311,7 @@ export default function HomePage({ setPage }) {
             <BrandMark onClick={() => setPage("home")} size={28} />
             <div className="se-footer-links">
               {[
-                { l:"Subscriptions", p:"subscriptions" },
+                { l:"Pricing", p:"subscriptions" },
                 { l:"How It Works", p:"how-it-works" },
                 { l:"FAQ",          p:"faq" },
                 { l:"Contact",      p:"contact" },

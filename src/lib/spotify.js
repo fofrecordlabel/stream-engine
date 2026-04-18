@@ -40,8 +40,11 @@ export async function fetchSpotifyTrack(url) {
   if (!isSpotifyTrackUrl(url)) return null
   try {
     const res = await apiFetch(`/api/spotify/track?url=${encodeURIComponent(url)}`)
-    if (!res.ok) throw new Error(`Backend ${res.status}`)
-    const d = await res.json()
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = d?.error || `Backend ${res.status}`
+      throw new Error(msg)
+    }
     if (!d?.ok) return null
     return {
       id: d.id || extractSpotifyId(url),
@@ -54,7 +57,7 @@ export async function fetchSpotifyTrack(url) {
     }
   } catch (err) {
     console.warn('[Spotify] track metadata failed:', err.message)
-    return null
+    throw err
   }
 }
 
@@ -65,8 +68,11 @@ export async function fetchSpotifyPlaylist(url) {
   if (!isSpotifyPlaylistUrl(url)) return null
   try {
     const res = await apiFetch(`/api/spotify/playlist?url=${encodeURIComponent(url)}`)
-    if (!res.ok) throw new Error(`Backend ${res.status}`)
-    const d = await res.json()
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = d?.error || `Backend ${res.status}`
+      throw new Error(msg)
+    }
     if (!d?.ok) return null
     return {
       id: d.id || extractPlaylistId(url),
@@ -79,7 +85,7 @@ export async function fetchSpotifyPlaylist(url) {
     }
   } catch (err) {
     console.warn('[Spotify] playlist metadata failed:', err.message)
-    return null
+    throw err
   }
 }
 

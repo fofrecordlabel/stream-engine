@@ -93,7 +93,7 @@ function LangSwitcher() {
 
 /* ── Nav links (public) ── */
 const PUBLIC_LINKS = [
-  { labelKey:'subscriptions', page:'subscriptions' },
+  { labelKey:'pricing', page:'subscriptions' },
   { labelKey:'tools',   page:'tools' },
   { labelKey:'blog',    page:'blog' },
 ]

@@ -17,35 +17,49 @@ export function apiUrl(path) {
  * @param {RequestInit} [init]
  * @returns {Promise<Response>}
  */
-export async function apiFetch(path, init = {}) {
+function collectApiUrls(path) {
   const p = path.startsWith('/') ? path : `/${path}`
-
   const urls = []
-  if (import.meta.env.VITE_API_ORIGIN) {
-    urls.push(apiUrl(p))
-  } else {
-    urls.push(p)
-    if (import.meta.env.DEV) {
-      urls.push(`http://127.0.0.1:3333${p}`)
-      urls.push(`http://localhost:3333${p}`)
-      if (typeof window !== 'undefined') {
-        const h = window.location.hostname
-        if (h && h !== 'localhost' && h !== '127.0.0.1') {
-          urls.push(`http://${h}:3333${p}`)
-        }
+  const add = (u) => {
+    if (u && !urls.includes(u)) urls.push(u)
+  }
+  /* Same-origin first: Vite dev proxy + Netlify → API rewrite in netlify.toml */
+  add(p)
+  if (import.meta.env.VITE_API_ORIGIN) add(apiUrl(p))
+  if (import.meta.env.DEV) {
+    add(`http://127.0.0.1:3333${p}`)
+    add(`http://localhost:3333${p}`)
+    if (typeof window !== 'undefined') {
+      const h = window.location.hostname
+      if (h && h !== 'localhost' && h !== '127.0.0.1') {
+        add(`http://${h}:3333${p}`)
       }
     }
   }
+  return urls
+}
 
+export async function apiFetch(path, init = {}) {
+  const p = path.startsWith('/') ? path : `/${path}`
+  const urls = collectApiUrls(p)
+  const method = String(init.method || 'GET').toUpperCase()
   let lastErr
-  for (const url of urls) {
+  let lastRes
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i]
     try {
       const res = await fetch(url, init)
+      lastRes = res
+      if (res.ok) return res
+      /* GET: try next origin (e.g. Netlify /api proxy down → direct Render URL) */
+      if (method === 'GET' && i < urls.length - 1) continue
       return res
     } catch (e) {
       lastErr = e
+      if (i < urls.length - 1) continue
     }
   }
+  if (lastRes) return lastRes
   throw lastErr || new Error('API unreachable')
 }
 

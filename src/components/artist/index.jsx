@@ -91,8 +91,8 @@ export function AddSongModal({ onClose, onAdd, onAddAndPromote }) {
       } else {
         setImportMsg({ type:"err", text:"Couldn't fetch track info — fill in details below" });
       }
-    } catch {
-      setImportMsg({ type:"err", text:"Import failed — check the URL and try again" });
+    } catch (e) {
+      setImportMsg({ type:"err", text: e?.message || "Import failed — check the URL and try again" });
     } finally {
       setPhase("idle");
     }
@@ -1384,11 +1384,14 @@ export function BillingSection({ wallet, setWallet }) {
 
   return (
     <div>
-      <h1 style={{ fontSize:20, fontWeight:800, letterSpacing:"-.02em", marginBottom:6 }}>Credits & Billing</h1>
+      <h1 style={{ fontSize:20, fontWeight:800, letterSpacing:"-.02em", marginBottom:4 }}>Pricing</h1>
+      <p style={{ fontSize:13, color:T.g300, marginBottom:18, lineHeight:1.55, maxWidth:640 }}>
+        Credit packs for campaigns and an optional Pro subscription — same checkout, same wallet.
+      </p>
 
       <div style={{ marginBottom:22 }}>
         <div style={{ fontSize:11, fontWeight:800, color:T.g300, letterSpacing:".08em", textTransform:"uppercase", marginBottom:10 }}>
-          Plans
+          Plans & subscriptions
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:12, marginBottom:14 }}>
           <div style={{ background:"rgba(255,255,255,.03)", border:`1px solid ${T.b0}`, borderRadius:16, padding:"16px 16px", textAlign:"center" }}>

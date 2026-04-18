@@ -2,7 +2,9 @@ StreamEngine — deploy from GitHub (minimal clicks)
 ===================================================
 
 What is already IN THE REPO (netlify.toml — Netlify UI overrides the same key names):
-  • Build: npm ci && npm run build, publish dist, SPA redirects
+  • Build: npm ci && npm run build, publish dist
+  • /api/* → proxies to Render (same-origin calls work for Spotify metadata + Stripe API)
+  • SPA catch-all for client routing
   • Defaults: VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_API_ORIGIN, VITE_SUPABASE_URL (rltejlyhvhlivskbezkx)
   • render.yaml → API on Render: Spotify client id, SUPABASE_URL, CORS to your Netlify site
 

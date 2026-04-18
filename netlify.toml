@@ -19,6 +19,14 @@
   # Supabase project (public ref — safe in repo). Anon key still required: set VITE_SUPABASE_ANON_KEY below or in Netlify UI.
   VITE_SUPABASE_URL = "https://rltejlyhvhlivskbezkx.supabase.co"
 
+# Proxy API to Render so the browser can use same-origin `/api/*` (fixes Spotify metadata + checkout on Netlify).
+# Must appear before the SPA catch-all. Change the host if your API service URL differs.
+[[redirects]]
+  from = "/api/*"
+  to = "https://streamengine-api.onrender.com/api/:splat"
+  status = 200
+  force = true
+
 # SPA: client-side routing
 [[redirects]]
   from = "/*"

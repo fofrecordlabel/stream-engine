@@ -69,14 +69,14 @@ export default function PricingPage({ setPage }) {
         <div style={{ display: 'inline-block', background: T.gnGl, border: `1px solid ${T.gnB}`,
                       borderRadius: 999, padding: '4px 16px', fontSize: 11.5, fontWeight: 800,
                       color: T.gn, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 22 }}>
-          Subscriptions
+          Pricing
         </div>
         <h1 style={{ fontSize: 'clamp(34px,5vw,58px)', fontWeight: 900, letterSpacing: '-.03em',
                      lineHeight: 1.08, marginBottom: 16, color: T.w }}>
-          Plans, credits, and upgrades
+          Plans, subscriptions & credits
         </h1>
-        <p style={{ fontSize: 17, color: T.g200, maxWidth: 460, margin: '0 auto 44px', lineHeight: 1.6 }}>
-          No hidden fees. No lock-in. Start free and upgrade when you're ready.
+        <p style={{ fontSize: 17, color: T.g200, maxWidth: 520, margin: '0 auto 44px', lineHeight: 1.6 }}>
+          Compare tiers, start a Pro subscription, or buy credit packs for Playlist Push — no hidden fees, no lock-in.
         </p>
 
         {/* Toggle */}
