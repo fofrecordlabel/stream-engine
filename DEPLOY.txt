@@ -1,19 +1,23 @@
 StreamEngine — deploy from GitHub (minimal clicks)
 ===================================================
 
-What is already IN THE REPO (no Netlify env screen needed for these):
-  • netlify.toml  → build command, SPA routing, VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_API_ORIGIN, VITE_SUPABASE_URL (rltejlyhvhlivskbezkx)
-  • render.yaml     → API on Render with Spotify client id, SUPABASE_URL, + CORS to your Netlify site
+What is already IN THE REPO (netlify.toml — Netlify UI overrides the same key names):
+  • Build: npm ci && npm run build, publish dist, SPA redirects
+  • Defaults: VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_API_ORIGIN, VITE_SUPABASE_URL (rltejlyhvhlivskbezkx)
+  • render.yaml → API on Render: Spotify client id, SUPABASE_URL, CORS to your Netlify site
 
-You still must add SECRETS once (they must not be committed to Git):
+Netlify → Environment variables (typical production set):
+  VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_SPOTIFY_CLIENT_ID
+  + VITE_APP_URL and VITE_API_ORIGIN if you do not rely on netlify.toml defaults.
+  After edits: Deploys → Trigger deploy.
+
+You still must add SECRETS once on the API host (they must not be committed to Git):
   On Render → streamengine-api → Environment:
     SPOTIFY_CLIENT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
     SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, (+ optional OPENAI_API_KEY, STRIPE_SUBSCRIPTION_PRICE_ID)
 
-Netlify build also needs your public Supabase + Stripe publishable keys (safe in repo but unique per project).
-If the Netlify build fails with “demo mode” or missing Supabase, add these in ONE of two ways:
-  A) Netlify → Site → Environment variables → add VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY
-  B) One terminal (with your local .env):  npx netlify-cli env:import .env
+If the site shows “demo mode” or Supabase never connects: confirm VITE_SUPABASE_ANON_KEY is set on Netlify and redeploy.
+Optional: npx netlify-cli env:import .env (from a machine that has a complete .env).
 
 If your Netlify URL is not streamenginev1.netlify.app, edit netlify.toml (VITE_APP_URL) and render.yaml (APP_URL + CORS_ALLOW_ORIGINS).
 

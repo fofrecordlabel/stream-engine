@@ -5,6 +5,7 @@ import { SpotifySearchBar } from '../components/common/Atoms.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { fetchSpotifyTrack, isSpotifyTrackUrl } from '../lib/spotify.js'
+import { spotifyMetadataUnavailableMessage } from '../lib/apiClient.js'
 import { setPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
 import { isDemo } from '../lib/supabase.js'
 
@@ -32,7 +33,7 @@ export default function SubmitSongPage({ setPage }) {
     try {
       const track = await fetchSpotifyTrack(spotifyUrl)
       if (!track) {
-        setError('Could not load metadata. Run npm run dev (backend on port 3333) and try again.')
+        setError(spotifyMetadataUnavailableMessage())
         return
       }
       const song = normalizePendingSong(track)

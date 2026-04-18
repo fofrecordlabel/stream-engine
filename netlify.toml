@@ -1,4 +1,7 @@
-# Netlify reads this from GitHub — no dashboard env required for the variables below.
+# Netlify reads this from GitHub. UI env vars override these when the same key exists.
+# Recommended in Netlify → Environment variables (build + runtime for Vite):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_SPOTIFY_CLIENT_ID
+# Plus either set VITE_APP_URL / VITE_API_ORIGIN here or in the UI.
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
