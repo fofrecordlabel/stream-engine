@@ -13,7 +13,7 @@ services:
     rootDir: .
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /api/spotify/health
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production

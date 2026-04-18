@@ -2,6 +2,17 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { supabase, isDemo } from '../lib/supabase.js'
 import { setPendingSubmission, getPendingSubmission } from '../lib/pendingSubmission.js'
 import { isUserAlreadyRegisteredError } from '../lib/dedupeRules.js'
+import { env } from '../lib/env.js'
+
+const SUPABASE_OAUTH_PROVIDERS = new Set(['google', 'apple'])
+
+function oauthRedirectTo() {
+  if (typeof window === 'undefined') return '/'
+  const configured = env.appUrl
+  const origin = window.location.origin
+  if (configured && configured === origin) return `${configured}/`
+  return `${origin}/`
+}
 
 /* ── Demo users for non-Supabase mode ─────────────────────── */
 const DEMO_USERS = {
@@ -107,30 +118,27 @@ export function AuthProvider({ children }) {
       setUser(u); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
       return { role: r, error: null, demo: true }
     }
-    const redirectTo = `${window.location.origin}/`
+    const key = String(provider || '').toLowerCase().trim()
+    if (!SUPABASE_OAUTH_PROVIDERS.has(key)) {
+      return { role: null, error: { message: 'Unsupported sign-in provider.' } }
+    }
+    const redirectTo = oauthRedirectTo()
     // Preserve invite/ref params (and any pending submission draft) before redirect.
     const pending = getPendingSubmission()
     if (params?.invite && !pending?.invite) {
       setPendingSubmission({ ...(pending || {}), invite: params.invite, resumeAfterAuth: true })
     }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo,
-        queryParams: {
-          // helps reduce UX friction when possible (provider-dependent)
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    })
+    const options = { redirectTo, skipBrowserRedirect: false }
+    if (key === 'google') {
+      options.queryParams = { access_type: 'offline', prompt: 'consent' }
+    }
+    const { error } = await supabase.auth.signInWithOAuth({ provider: key, options })
     return { role: null, error }
   }
 
   const requestPasswordReset = async (email) => {
     if (isDemo) return { error: null, demo: true }
-    const redirectTo = `${window.location.origin}/`
-    return supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    return supabase.auth.resetPasswordForEmail(email, { redirectTo: oauthRedirectTo() })
   }
 
   const updatePassword = async (newPassword) => {
@@ -152,6 +160,9 @@ export function AuthProvider({ children }) {
     if (error) {
       if (isUserAlreadyRegisteredError(error)) return { error, userExists: true }
       return { error }
+    }
+    if (!data?.user) {
+      return { role: null, error: null, needsEmailConfirmation: true }
     }
     const r = await loadProfile(data.user)
     return { role: r, error: null }

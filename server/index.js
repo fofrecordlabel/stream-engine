@@ -6,6 +6,7 @@ import OpenAI from 'openai'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { fetchTrackFromWebApi, fetchPlaylistFromWebApi } from './spotifyServer.js'
+import { normalizeSpotifyPlaylistUrl, normalizeSpotifyTrackUrl } from './spotifyUrls.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Primary: server/.env (secrets). Secondary: repo root .env for shared keys without overwriting server.
@@ -38,14 +39,20 @@ function corsExtraOrigins() {
   return raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)
 }
 
-function appUrlOrigin() {
-  const u = getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL')
-  if (!u) return ''
-  try {
-    return new URL(u).origin
-  } catch {
-    return ''
+/** Origins derived from APP_URL (supports comma-separated deploy + preview URLs). */
+function appUrlOriginsList() {
+  const raw = (getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL') || '').trim()
+  if (!raw) return []
+  const parts = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)
+  const out = []
+  for (const p of parts) {
+    try {
+      out.push(new URL(p).origin)
+    } catch {
+      /* ignore invalid segment */
+    }
   }
+  return out
 }
 
 app.use((req, res, next) => {
@@ -54,11 +61,11 @@ app.use((req, res, next) => {
     /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
     /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin) ||
     /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin)
-  const appOrigin = appUrlOrigin()
+  const appOrigins = appUrlOriginsList()
   const extras = corsExtraOrigins()
   const allow =
     localhost ||
-    (!!origin && appOrigin && origin === appOrigin) ||
+    (!!origin && appOrigins.includes(origin)) ||
     (!!origin && extras.includes(origin))
 
   if (allow && origin) {
@@ -250,7 +257,8 @@ app.use(express.json({ limit: '1mb' }))
  */
 app.get('/api/spotify/track', async (req, res) => {
   try {
-    const url = String(req.query?.url || '').trim()
+    const raw = String(req.query?.url || '').trim()
+    const url = normalizeSpotifyTrackUrl(raw)
     if (!url.includes('open.spotify.com/track/')) return res.status(400).json({ ok: false, error: 'Invalid track url' })
     const idMatch = url.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/)
     const trackId = idMatch?.[1] || null
@@ -646,6 +654,60 @@ app.get('/api/billing/health', (_req, res) => {
     stripe: !!getStripe(),
     supabaseAdmin: !!getSupabaseAdmin(),
   })
+})
+
+/** Lightweight health probe for uptime / debugging (no secrets). */
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, service: 'streamengine-api', ts: new Date().toISOString() })
+})
+
+/** Root health check (Render / load balancers often expect a non-/api path). */
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, service: 'streamengine-api', ts: new Date().toISOString() })
+})
+
+/**
+ * Campaign / one-off PaymentIntent — secret key stays on the server.
+ * POST /api/billing/create-payment-intent  body: { amountUsd, campaignId?, userId? }
+ */
+app.post('/api/billing/create-payment-intent', async (req, res) => {
+  try {
+    const stripe = getStripe()
+    if (!stripe) {
+      return res.status(503).json({ ok: false, error: 'Stripe is not configured on the server' })
+    }
+    const { amountUsd, campaignId, userId } = req.body || {}
+    const usd = Number(amountUsd)
+    if (!Number.isFinite(usd) || usd <= 0) {
+      return res.status(400).json({ ok: false, error: 'Invalid amountUsd' })
+    }
+    const amountCents = Math.min(Math.round(usd * 100), 99999999)
+    const pi = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        streamengine: 'campaign',
+        campaign_id: campaignId != null ? String(campaignId) : '',
+        user_id: userId != null ? String(userId) : '',
+      },
+    })
+    return res.json({ ok: true, clientSecret: pi.client_secret })
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || 'PaymentIntent creation failed' })
+  }
+})
+
+app.use((req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({
+      ok: false,
+      error: 'Not found',
+      path: req.originalUrl,
+      method: req.method,
+    })
+  }
+  res.status(404).type('text').send('Not found')
 })
 
 const server = app.listen(PORT, () => {

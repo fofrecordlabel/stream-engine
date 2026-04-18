@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './styles/globals.css'
 import App from './App.jsx'
 import { STREAMENGINE_SUPABASE_URL } from './lib/supabase.js'
+import { assertProdPublicEnv, env } from './lib/env.js'
 
 /** Warm connections for first paint (URLs are public). */
 function addLinkRel(rel, href, crossOrigin) {
@@ -14,29 +15,24 @@ function addLinkRel(rel, href, crossOrigin) {
   document.head.appendChild(el)
 }
 
-const supabaseOrigin = import.meta.env.VITE_SUPABASE_URL || STREAMENGINE_SUPABASE_URL
+const supabaseOrigin = env.supabaseUrl || STREAMENGINE_SUPABASE_URL
 try {
   const u = new URL(supabaseOrigin)
   addLinkRel('preconnect', u.origin, 'anonymous')
 } catch { /* ignore */ }
 
-const apiOrigin = import.meta.env.VITE_API_ORIGIN
+const apiOrigin = env.apiOrigin
 if (apiOrigin) {
   try {
     addLinkRel('dns-prefetch', new URL(apiOrigin).origin)
   } catch { /* ignore */ }
 }
 
-if (import.meta.env.PROD) {
-  const need = []
-  if (!import.meta.env.VITE_SUPABASE_ANON_KEY) need.push('VITE_SUPABASE_ANON_KEY')
-  if (!import.meta.env.VITE_API_ORIGIN) need.push('VITE_API_ORIGIN')
-  if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) need.push('VITE_STRIPE_PUBLISHABLE_KEY')
-  if (need.length) {
-    console.warn(
-      `[StreamEngine] Production build missing: ${need.join(', ')} — set in Netlify → Environment variables and redeploy.`,
-    )
-  }
+const need = assertProdPublicEnv()
+if (need.length) {
+  console.warn(
+    `[StreamEngine] Production build missing: ${need.join(', ')} — set in Netlify → Environment variables and redeploy.`,
+  )
 }
 
 createRoot(document.getElementById('root')).render(

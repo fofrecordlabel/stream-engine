@@ -24,3 +24,39 @@ Optional: npx netlify-cli env:import .env (from a machine that has a complete .e
 If your Netlify URL is not streamenginev1.netlify.app, edit netlify.toml (VITE_APP_URL) and render.yaml (APP_URL + CORS_ALLOW_ORIGINS).
 
 If your Render API name is not streamengine-api, change the Render service name and set VITE_API_ORIGIN in netlify.toml to match (https://<name>.onrender.com, no trailing slash).
+
+Supabase — Google / Apple OAuth (manual dashboard checklist)
+------------------------------------------------------------
+After code deploy, complete these in Supabase (rltejlyhvhlivskbezkx or your project):
+
+  1. Authentication → Providers → enable Google; add Web client ID + secret from Google Cloud Console.
+  2. Authentication → Providers → enable Sign in with Apple if you use it; add Service ID / key / bundle IDs per Apple’s flow.
+  3. Authentication → URL Configuration → Site URL = your live app origin (e.g. https://streamenginev1.netlify.app).
+  4. Redirect URLs: add https://streamenginev1.netlify.app/ and http://localhost:5173/ (or your dev port) so OAuth can return to the app.
+  5. Confirm provider credentials are saved; “provider is not enabled” in the UI means the toggle or keys are still missing in Supabase.
+
+The app calls supabase.auth.signInWithOAuth with providers `google` and `apple` and uses VITE_APP_URL when it matches the current origin for redirectTo; otherwise it uses window.location.origin.
+
+Render API — HTTP routes (Express)
+-----------------------------------
+Health:
+  GET  /health              — JSON { ok, service, ts } (Render health check)
+  GET  /api/health          — same payload under /api
+
+Spotify:
+  GET  /api/spotify/track?url=…     — track metadata (intl + spotify:track:… URLs supported)
+  GET  /api/spotify/playlist?url=…
+  GET  /api/spotify/health
+
+Stripe / billing:
+  POST /api/create-checkout
+  POST /api/billing/create-checkout
+  POST /api/create-subscription-checkout
+  POST /api/sync-checkout
+  POST /api/billing/webhook          — raw body; set endpoint URL in Stripe dashboard
+  POST /api/billing/create-payment-intent
+  POST /api/validate-discount
+  POST /api/billing/validate-discount
+  GET  /api/billing/health
+
+CORS: set APP_URL (and/or comma-separated origins) plus CORS_ALLOW_ORIGINS on Render so browser calls from your Netlify origin(s) are allowed. Local dev origins (localhost, 127.0.0.1, LAN) are allowed automatically.

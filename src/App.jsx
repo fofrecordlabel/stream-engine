@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { GLOBAL_CSS } from './tokens.js'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ToastProvider } from './context/ToastContext.jsx'
@@ -24,6 +24,8 @@ import { CheckoutSuccessPage, CheckoutCancelPage } from './pages/CheckoutStatusP
 
 /* ── Public pages (no auth required) ── */
 const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','subscriptions','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
+
+const POST_AUTH_RETURN_PAGES = new Set(['artist', 'curator', 'admin', 'settings', 'submit-song', 'submit-playlist', 'subscriptions'])
 
 /* ── Role → default page after login ── */
 const ROLE_DEFAULTS = { artist:'artist', curator:'curator', admin:'admin' }
@@ -73,10 +75,14 @@ function AppInner() {
   const [page,   setPage]   = useState('home')
   const [postId, setPostId] = useState(null)
   const [initialHandled, setInitialHandled] = useState(false)
+  const postLoginResumeRef = useRef(false)
 
-  const navigate = (dest) => {
+  const navigate = useCallback((dest) => {
     // Auth guard: private page without session → go to auth
     if (!PUBLIC_PAGES.has(dest) && !isLoggedIn) {
+      try {
+        sessionStorage.setItem('se_auth_return', dest)
+      } catch { /* ignore */ }
       setPage('auth')
       return
     }
@@ -94,7 +100,7 @@ function AppInner() {
     // Pricing → subscriptions (same screen)
     if (dest === 'pricing') { setPage('subscriptions'); return }
     setPage(dest)
-  }
+  }, [isLoggedIn, role])
 
   // Initial path handling: support /signup, /join, /invite deep links.
   useEffect(() => {
@@ -131,6 +137,30 @@ function AppInner() {
     }
   }, [isLoggedIn, loading, role]) // eslint-disable-line
 
+  useEffect(() => {
+    if (!isLoggedIn) postLoginResumeRef.current = false
+  }, [isLoggedIn])
+
+  /* OAuth return to home / refresh: resume hero track import or deep-link return after session is ready. */
+  useEffect(() => {
+    if (loading || !isLoggedIn || postLoginResumeRef.current) return
+    const pending = getPendingSubmission()
+    if (page === 'home' && pending?.resumeAfterAuth && pending?.song && pending?.status === 'metadata-ready') {
+      postLoginResumeRef.current = true
+      navigate('artist')
+      return
+    }
+    let returnTo = null
+    try {
+      returnTo = sessionStorage.getItem('se_auth_return')
+      if (returnTo) sessionStorage.removeItem('se_auth_return')
+    } catch { /* ignore */ }
+    if (returnTo && POST_AUTH_RETURN_PAGES.has(returnTo)) {
+      postLoginResumeRef.current = true
+      navigate(returnTo)
+    }
+  }, [loading, isLoggedIn, page, navigate])
+
   if (loading) return <LoadingScreen />
 
   // Blog post — special state-driven route
@@ -163,16 +193,22 @@ export default function App() {
     document.head.appendChild(el)
   }, [])
 
-  // Viewport-safe gutter so right-side IDE panels never block critical UI.
+  // Local-only: extra right gutter so Cursor / devtools panels do not cover nav/hero.
+  // Production sites must stay visually centered (no asymmetric viewport padding).
   useEffect(() => {
     const apply = () => {
+      const host = window.location.hostname
+      const isLocal = host === 'localhost' || host === '127.0.0.1'
       const w = window.innerWidth || document.documentElement.clientWidth || 0
-      // Heuristic: Cursor/devtools panels often consume ~280–360px on the right.
-      const gutter =
-        w >= 1400 ? 360 :
-        w >= 1200 ? 320 :
-        w >= 1024 ? 280 :
-        24
+      const gutter = !isLocal
+        ? 0
+        : w >= 1400
+          ? 360
+          : w >= 1200
+            ? 320
+            : w >= 1024
+              ? 280
+              : 24
       document.documentElement.style.setProperty('--se-right-gutter', `${gutter}px`)
     }
     apply()

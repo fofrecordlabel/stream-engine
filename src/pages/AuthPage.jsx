@@ -4,6 +4,7 @@ import { BrandMark } from '../components/common/Logo.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { isDemo } from '../lib/supabase.js'
 import { getPendingSubmission } from '../lib/pendingSubmission.js'
+import { formatOAuthProviderError } from '../lib/oauthErrors.js'
 
 const inp = {
   width:'100%', background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)',
@@ -94,11 +95,21 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
         setError('')
       } else if (result.error) {
         setError(result.error.message || 'Authentication failed')
+      } else if (result.needsEmailConfirmation) {
+        setInfo('Check your email for a confirmation link, then sign in here.')
+        setMode('signin')
       } else {
+        let returnTo = null
+        try {
+          returnTo = sessionStorage.getItem('se_auth_return')
+          if (returnTo) sessionStorage.removeItem('se_auth_return')
+        } catch { /* ignore */ }
         const pending = getPendingSubmission()
-        const dest = pending?.resumeAfterAuth
-          ? 'artist'
-          : result.role === 'curator' ? 'curator' : result.role === 'admin' ? 'admin' : 'artist'
+        const allowedReturn = new Set(['artist', 'curator', 'admin', 'settings', 'submit-song', 'submit-playlist', 'subscriptions'])
+        const dest =
+          (returnTo && allowedReturn.has(returnTo) && returnTo) ||
+          (pending?.resumeAfterAuth ? 'artist' : null) ||
+          (result.role === 'curator' ? 'curator' : result.role === 'admin' ? 'admin' : 'artist')
         setPage(dest)
       }
     } catch (err) {
@@ -127,7 +138,7 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
       const pending = getPendingSubmission()
       const invite = pending?.invite || null
       const result = await signInWithProvider(provider.toLowerCase(), { invite })
-      if (result?.error) setError(result.error.message || 'OAuth sign-in failed')
+      if (result?.error) setError(formatOAuthProviderError(result.error))
       // On success, Supabase redirects away. Nothing else to do here.
     } finally {
       setLoading(false)

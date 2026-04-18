@@ -17,15 +17,29 @@ export function apiUrl(path) {
  * @param {RequestInit} [init]
  * @returns {Promise<Response>}
  */
+function isBrowserLocalhost() {
+  if (typeof window === 'undefined') return false
+  const h = window.location.hostname
+  return h === 'localhost' || h === '127.0.0.1'
+}
+
 function collectApiUrls(path) {
   const p = path.startsWith('/') ? path : `/${path}`
   const urls = []
   const add = (u) => {
     if (u && !urls.includes(u)) urls.push(u)
   }
-  /* Same-origin first: Vite dev proxy + Netlify → API rewrite in netlify.toml */
-  add(p)
-  if (import.meta.env.VITE_API_ORIGIN) add(apiUrl(p))
+  const remote = import.meta.env.VITE_API_ORIGIN
+  /* Production (non-localhost): hit configured API first so a broken Netlify /api proxy never returns HTML 404. */
+  const preferRemoteFirst = import.meta.env.PROD && !!remote && !isBrowserLocalhost()
+  if (preferRemoteFirst) {
+    add(apiUrl(p))
+    add(p)
+  } else {
+    /* Dev: same-origin first (Vite proxy). */
+    add(p)
+    if (remote) add(apiUrl(p))
+  }
   if (import.meta.env.DEV) {
     add(`http://127.0.0.1:3333${p}`)
     add(`http://localhost:3333${p}`)
@@ -39,10 +53,23 @@ function collectApiUrls(path) {
   return urls
 }
 
+/** Safe to retry on alternate API origin (same body → same Stripe session if first attempt never reached server). */
+function isBillingPostRetryPath(path) {
+  return (
+    path.startsWith('/api/create-checkout') ||
+    path.startsWith('/api/create-subscription-checkout') ||
+    path.startsWith('/api/sync-checkout') ||
+    path.startsWith('/api/validate-discount') ||
+    path.startsWith('/api/billing/create-payment-intent')
+  )
+}
+
 export async function apiFetch(path, init = {}) {
   const p = path.startsWith('/') ? path : `/${path}`
   const urls = collectApiUrls(p)
   const method = String(init.method || 'GET').toUpperCase()
+  const allowAlternateOriginRetry =
+    method === 'GET' || (method === 'POST' && isBillingPostRetryPath(p) && urls.length > 1)
   let lastErr
   let lastRes
   for (let i = 0; i < urls.length; i++) {
@@ -51,8 +78,8 @@ export async function apiFetch(path, init = {}) {
       const res = await fetch(url, init)
       lastRes = res
       if (res.ok) return res
-      /* GET: try next origin (e.g. Netlify /api proxy down → direct Render URL) */
-      if (method === 'GET' && i < urls.length - 1) continue
+      /* GET (and idempotent billing POST): try next origin if configured */
+      if (allowAlternateOriginRetry && i < urls.length - 1) continue
       return res
     } catch (e) {
       lastErr = e

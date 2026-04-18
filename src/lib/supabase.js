@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { env } from './env.js'
 
 /** Production Supabase project (public URL). Override with VITE_SUPABASE_URL. */
 export const STREAMENGINE_SUPABASE_URL = 'https://rltejlyhvhlivskbezkx.supabase.co'
 
-const url = import.meta.env.VITE_SUPABASE_URL || STREAMENGINE_SUPABASE_URL
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const url = env.supabaseUrl || STREAMENGINE_SUPABASE_URL
+const key = env.supabaseAnonKey || ''
 
 /* Anon key is required for real auth/data; URL alone enables a consistent project target in builds. */
 export const isDemo = !key

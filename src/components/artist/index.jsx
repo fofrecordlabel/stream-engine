@@ -10,6 +10,7 @@ import { isDemo, supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import { getPendingSubmission } from '../../lib/pendingSubmission.js'
+import { isDev } from '../../lib/env.js'
 import { hasBlockingActiveCampaignForSong } from '../../lib/dedupeRules.js'
 
 /* ── SongSquare ── */
@@ -613,7 +614,10 @@ export function BuyCreditsModal({ onClose, onBuy, currentCredits, needed, userId
     try {
       const { isStripeConfigured, getStripe, createCheckoutSession } = await import('../../lib/stripe.js')
       if (!isStripeConfigured) {
-        toast.error('Add VITE_STRIPE_PUBLISHABLE_KEY to your root .env.', 'Stripe not configured')
+        toast.error(
+          isDev ? 'Add VITE_STRIPE_PUBLISHABLE_KEY to your root .env.' : 'Stripe is not configured (add VITE_STRIPE_PUBLISHABLE_KEY in Netlify and redeploy).',
+          'Stripe not configured',
+        )
         return
       }
       if (!userId) {
@@ -630,7 +634,10 @@ export function BuyCreditsModal({ onClose, onBuy, currentCredits, needed, userId
       })
       const stripe = await getStripe()
       if (!stripe || !session?.sessionId) {
-        toast.error('Could not start checkout. Is the backend running on PORT 3333?', 'Stripe')
+        toast.error(
+          isDev ? 'Could not start checkout. Is the backend running on PORT 3333?' : 'Could not start checkout. Confirm your API is live and VITE_API_ORIGIN matches it.',
+          'Stripe',
+        )
         return
       }
       await stripe.redirectToCheckout({ sessionId: session.sessionId })
@@ -1358,13 +1365,19 @@ export function BillingSection({ wallet, setWallet }) {
     try {
       const m = await import('../../lib/stripe.js')
       if (!m.isStripeConfigured) {
-        toast.error('Add VITE_STRIPE_PUBLISHABLE_KEY to your .env.', 'Stripe')
+        toast.error(
+          isDev ? 'Add VITE_STRIPE_PUBLISHABLE_KEY to your .env.' : 'Stripe is not configured (add VITE_STRIPE_PUBLISHABLE_KEY in Netlify and redeploy).',
+          'Stripe',
+        )
         return
       }
       const out = await m.createSubscriptionCheckoutSession({ userId: user.id })
       const stripe = await m.getStripe()
       if (!stripe || !out?.sessionId) {
-        toast.error(out?.error || 'Could not start checkout. Is the backend running?', 'Billing')
+        toast.error(
+          out?.error || (isDev ? 'Could not start checkout. Is the backend running?' : 'Could not start checkout. Confirm the API is live and billing env vars are set on Render.'),
+          'Billing',
+        )
         return
       }
       await stripe.redirectToCheckout({ sessionId: out.sessionId })

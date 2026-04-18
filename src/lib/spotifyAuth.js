@@ -17,7 +17,9 @@
  *   user-read-private
  */
 
-const CLIENT_ID   = import.meta.env.VITE_SPOTIFY_CLIENT_ID || ''
+import { env } from './env.js'
+
+const CLIENT_ID = env.spotifyClientId || ''
 const REDIRECT_URI = window.location.origin   // SPA — Spotify redirects back to root with ?code=
 const SCOPES = [
   'playlist-modify-public',
@@ -37,7 +39,7 @@ const OAUTH_STARTED_AT_KEY = 'se_spotify_oauth_started_at'
 const OAUTH_TTL_MS = 15 * 60 * 1000
 
 export function hasSpotifyClientId() {
-  return !!import.meta.env.VITE_SPOTIFY_CLIENT_ID
+  return !!env.spotifyClientId
 }
 
 /** True when URL looks like a Spotify OAuth return (not Supabase). */

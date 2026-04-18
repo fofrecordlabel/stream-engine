@@ -32,7 +32,7 @@ export default function HomePage({ setPage }) {
 
   const goPricingPage = () => setPage('subscriptions')
 
-  const isUrl = isSpotifyTrackUrl(query.trim()) || query.includes("spotify:track");
+  const isUrl = isSpotifyTrackUrl(query.trim())
   const displayCurators = []
 
   const continueFromHero = useCallback(async () => {
@@ -55,7 +55,7 @@ export default function HomePage({ setPage }) {
 
       const song = normalizePendingSong({
         ...track,
-        spotifyUrl,
+        spotifyUrl: track.spotifyUrl || spotifyUrl,
         trackId: track.id,
         spotifyId: track.id,
         genre: '',
@@ -90,24 +90,24 @@ export default function HomePage({ setPage }) {
       <NavBar setPage={setPage} scrolled={scrolled} />
 
       {/* HERO */}
-      <section style={{ position:"relative", minHeight:"100vh", display:"flex", alignItems:"center", padding:"110px 0 80px", overflow:"hidden" }}>
+      <section style={{ position:"relative", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"118px 0 88px", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:"20%", left:"50%", transform:"translateX(-50%)", width:800, height:560, background:"radial-gradient(ellipse,rgba(127,255,0,.07) 0%,transparent 62%)", pointerEvents:"none" }} />
         <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px)", backgroundSize:"60px 60px", pointerEvents:"none" }} />
-        <div className="se-shell" style={{ position:"relative", display:"flex", justifyContent:"center" }}>
-        <div style={{ maxWidth:'min(720px, 100%)', width:"100%", position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
-          <div className="fu1" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 14px 5px 7px", borderRadius:30, background:T.gnGl, border:`1px solid ${T.gnB}`, marginBottom:26 }}>
+        <div className="se-shell" style={{ position:"relative", width:"100%", display:"flex", justifyContent:"center", boxSizing:"border-box" }}>
+        <div style={{ maxWidth:"min(760px, 100%)", width:"100%", margin:"0 auto", boxSizing:"border-box", position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
+          <div className="fu1" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 16px 6px 8px", borderRadius:30, background:T.gnGl, border:`1px solid ${T.gnB}`, marginBottom:22 }}>
             <span style={{ background:T.gn, color:"#000", fontWeight:900, fontSize:9.5, padding:"3px 9px", borderRadius:20, letterSpacing:".05em" }}>LIVE</span>
             <Dot size={5} pulse />
-            <span style={{ fontSize:12.5, color:T.g100, fontWeight:500 }}>3,200+ verified Spotify curators</span>
+            <span style={{ fontSize:13, color:T.g100, fontWeight:500 }}>3,200+ verified Spotify curators</span>
           </div>
-          <h1 className="fu2" style={{ fontSize:"clamp(42px,7.5vw,80px)", fontWeight:900, lineHeight:1.0, letterSpacing:"-.045em", marginBottom:20 }}>
+          <h1 className="fu2" style={{ fontSize:"clamp(46px,7.2vw,88px)", fontWeight:900, lineHeight:1.02, letterSpacing:"-.045em", marginBottom:24, maxWidth:"100%" }}>
             Get your music<br />onto Spotify<br />
             <span style={{ color:T.gn, animation:"glow 3.5s ease-in-out infinite" }}>playlists.</span>
           </h1>
-          <p className="fu3" style={{ fontSize:"clamp(14.5px,2vw,17.5px)", color:T.g200, lineHeight:1.78, marginBottom:32, maxWidth:520 }}>
+          <p className="fu3" style={{ fontSize:"clamp(15px,2.1vw,19px)", color:T.g200, lineHeight:1.82, marginBottom:36, maxWidth:540, width:"100%" }}>
             Paste your Spotify track once, save it to your account, and launch one Playlist Push campaign. Credit packs plus optional Pro subscription. Transparent. Fast.
           </p>
-          <div className="fu4" style={{ width:"100%", maxWidth:560, marginBottom:16 }}>
+          <div className="fu4" style={{ width:"100%", maxWidth:580, marginBottom:22 }}>
             <form onSubmit={e => { e.preventDefault(); continueFromHero(); }} style={{ position:"relative" }}>
               <SpotifySearchBar value={query} onChange={(v) => { setQuery(v); setHeroSuccess(''); setHeroError('') }} onFocus={() => setFocused(true)} onBlur={() => setTimeout(() => setFocused(false), 150)} focused={focused} large placeholder="Paste a Spotify track link…" />
               {query && (
@@ -117,23 +117,23 @@ export default function HomePage({ setPage }) {
               )}
             </form>
             {heroError && (
-              <div style={{ marginTop:10, fontSize:12.5, color:T.red, fontWeight:700 }}>
+              <div style={{ marginTop:14, fontSize:13, color:T.red, fontWeight:600, lineHeight:1.55, maxWidth:520, marginLeft:"auto", marginRight:"auto" }}>
                 {heroError}
               </div>
             )}
             {heroSuccess && !heroError && (
-              <div style={{ marginTop:10, fontSize:12.5, color:T.gn, fontWeight:700 }}>
+              <div style={{ marginTop:14, fontSize:13, color:T.gn, fontWeight:700 }}>
                 {heroSuccess}{fetching ? '' : isLoggedIn ? ' Taking you to your dashboard…' : ' Opening sign-in…'}
               </div>
             )}
           </div>
-          <div className="fu5" style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap", marginBottom:28, width:"100%", maxWidth:400 }}>
-            <button type="button" className="bp" onClick={() => { if (isUrl) void continueFromHero(); else setPage('get-started') }} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:130 }}>
+          <div className="fu5" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap", marginBottom:32, width:"100%", maxWidth:440 }}>
+            <button type="button" className="bp" onClick={() => { if (isUrl) void continueFromHero(); else setPage('get-started') }} style={{ flex:1, padding:"14px 22px", fontSize:15.5, minWidth:130 }}>
               {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
             </button>
-            <button type="button" className="bs" onClick={goPricingPage} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:110 }}>Pricing</button>
+            <button type="button" className="bs" onClick={goPricingPage} style={{ flex:1, padding:"14px 22px", fontSize:15.5, minWidth:110 }}>Pricing</button>
           </div>
-          <div className="fu5" style={{ display:"flex", gap:7, justifyContent:"center", flexWrap:"wrap" }}>
+          <div className="fu5" style={{ display:"flex", gap:9, justifyContent:"center", flexWrap:"wrap", rowGap:10 }}>
             {[{i:"✓",t:"Verified curators"},{i:"🎯",t:"Multi-select campaign"},{i:"🔒",t:"Credit refund guarantee"},{i:"⚡",t:"18h avg response"}].map(t => (
               <div key={t.t} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 11px", borderRadius:20, background:"rgba(255,255,255,.04)", border:`1px solid ${T.b0}`, fontSize:12.5, color:T.g100, fontWeight:500 }}>
                 <span style={{ fontSize:11 }}>{t.i}</span>{t.t}

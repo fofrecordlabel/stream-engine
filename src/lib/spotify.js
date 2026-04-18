@@ -4,26 +4,46 @@
  */
 
 import { apiFetch } from './apiClient.js'
+import { formatTrackMetadataError } from './apiErrors.js'
 
-const TRACK_RE    = /open\.spotify\.com\/track\/([A-Za-z0-9]+)/
-const PLAYLIST_RE = /open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/
+const TRACK_RE    = /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?track\/([A-Za-z0-9]+)/i
+const TRACK_URI_RE = /^spotify:track:([A-Za-z0-9]+)$/i
+const PLAYLIST_RE = /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?playlist\/([A-Za-z0-9]+)/i
+const PLAYLIST_URI_RE = /^spotify:playlist:([A-Za-z0-9]+)$/i
 
 export function extractSpotifyId(url) {
-  const m = url?.match(TRACK_RE)
+  const s = String(url || '').trim()
+  const uri = s.match(TRACK_URI_RE)
+  if (uri) return uri[1]
+  const m = s.match(TRACK_RE)
   return m ? m[1] : null
+}
+
+/** Canonical https URL for API + oEmbed (intl paths and spotify: URIs). */
+export function canonicalSpotifyTrackUrl(input) {
+  const id = extractSpotifyId(input)
+  return id ? `https://open.spotify.com/track/${id}` : null
 }
 
 export function isSpotifyTrackUrl(url) {
-  return TRACK_RE.test(url || '')
+  return !!extractSpotifyId(url)
 }
 
 export function extractPlaylistId(url) {
-  const m = url?.match(PLAYLIST_RE)
+  const s = String(url || '').trim()
+  const uri = s.match(PLAYLIST_URI_RE)
+  if (uri) return uri[1]
+  const m = s.match(PLAYLIST_RE)
   return m ? m[1] : null
 }
 
+export function canonicalSpotifyPlaylistUrl(input) {
+  const id = extractPlaylistId(input)
+  return id ? `https://open.spotify.com/playlist/${id}` : null
+}
+
 export function isSpotifyPlaylistUrl(url) {
-  return PLAYLIST_RE.test(url || '')
+  return !!extractPlaylistId(url)
 }
 
 /** Build a spotify:track:ID URI from a URL */
@@ -38,12 +58,12 @@ export function trackUri(url) {
  */
 export async function fetchSpotifyTrack(url) {
   if (!isSpotifyTrackUrl(url)) return null
+  const apiUrl = canonicalSpotifyTrackUrl(url) || String(url).trim()
   try {
-    const res = await apiFetch(`/api/spotify/track?url=${encodeURIComponent(url)}`)
+    const res = await apiFetch(`/api/spotify/track?url=${encodeURIComponent(apiUrl)}`)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const msg = d?.error || `Backend ${res.status}`
-      throw new Error(msg)
+      throw new Error(formatTrackMetadataError(res.status, d?.error))
     }
     if (!d?.ok) return null
     return {
@@ -51,7 +71,7 @@ export async function fetchSpotifyTrack(url) {
       title: d.title || '',
       artist: d.artist || '',
       artworkUrl: d.artworkUrl || null,
-      spotifyUrl: d.spotifyUrl || url,
+      spotifyUrl: d.spotifyUrl || apiUrl,
       previewUrl: d.previewUrl || null,
       duration: d.durationMs ?? d.duration ?? null,
     }
@@ -66,12 +86,12 @@ export async function fetchSpotifyTrack(url) {
  */
 export async function fetchSpotifyPlaylist(url) {
   if (!isSpotifyPlaylistUrl(url)) return null
+  const apiUrl = canonicalSpotifyPlaylistUrl(url) || String(url).trim()
   try {
-    const res = await apiFetch(`/api/spotify/playlist?url=${encodeURIComponent(url)}`)
+    const res = await apiFetch(`/api/spotify/playlist?url=${encodeURIComponent(apiUrl)}`)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const msg = d?.error || `Backend ${res.status}`
-      throw new Error(msg)
+      throw new Error(formatTrackMetadataError(res.status, d?.error))
     }
     if (!d?.ok) return null
     return {
@@ -79,7 +99,7 @@ export async function fetchSpotifyPlaylist(url) {
       name: d.name || '',
       owner: d.owner || null,
       artworkUrl: d.artworkUrl || null,
-      spotifyUrl: d.spotifyUrl || url,
+      spotifyUrl: d.spotifyUrl || apiUrl,
       followers: d.followers != null ? d.followers : null,
       trackCount: d.trackCount != null ? d.trackCount : null,
     }

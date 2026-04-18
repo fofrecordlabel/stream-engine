@@ -147,21 +147,21 @@ export default function NavBar({ setPage, scrolled = false }) {
 
         {/* ── Left: brand ── */}
         <div
+          className="se-nav-left"
           onDoubleClick={() => setAdminGateOpen(true)}
-          style={{ display: 'flex', alignItems: 'center' }}
           title="Double-click for admin access"
         >
-          <BrandMark onClick={() => setPage('home')} size={28} />
+          <BrandMark onClick={() => setPage('home')} size={30} />
         </div>
 
-        {/* ── Center: primary nav ── */}
-        <div style={{ display:'flex', alignItems:'center', gap:2 }} className="hide-sm">
+        {/* ── Center: primary nav (hidden on small screens via .hide-sm) ── */}
+        <div className="se-nav-center hide-sm">
 
           {/* Dashboard (logged in only) */}
           {isLoggedIn && (
             <button onClick={() => setPage(dashPage)}
-              style={{ padding:'7px 14px', borderRadius:9, background:'none', border:'none',
-                       color:T.g200, fontSize:13.5, fontWeight:500, cursor:'pointer', transition:'color .15s' }}
+              style={{ padding:'8px 16px', borderRadius:10, background:'none', border:'none',
+                       color:T.g200, fontSize:14, fontWeight:500, cursor:'pointer', transition:'color .15s' }}
               onMouseEnter={e => e.currentTarget.style.color = T.w}
               onMouseLeave={e => e.currentTarget.style.color = T.g200}>
               {t('dashboard')}
@@ -172,9 +172,9 @@ export default function NavBar({ setPage, scrolled = false }) {
           <div ref={submitRef} style={{ position:'relative' }}>
             <button
               onClick={() => setSubmitOpen(o => !o)}
-              style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 14px', borderRadius:9,
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:10,
                        background: submitOpen ? 'rgba(255,255,255,.06)' : 'none', border:'none',
-                       color: submitOpen ? T.w : T.g200, fontSize:13.5, fontWeight:500, cursor:'pointer', transition:'all .15s' }}
+                       color: submitOpen ? T.w : T.g200, fontSize:14, fontWeight:500, cursor:'pointer', transition:'all .15s' }}
               onMouseEnter={e => { e.currentTarget.style.color = T.w }}
               onMouseLeave={e => { if (!submitOpen) e.currentTarget.style.color = T.g200 }}>
               {t('submit')}
@@ -189,8 +189,8 @@ export default function NavBar({ setPage, scrolled = false }) {
           {/* Static links */}
           {PUBLIC_LINKS.map(l => (
             <button key={l.labelKey} onClick={() => setPage(l.page)}
-              style={{ padding:'7px 14px', borderRadius:9, background:'none', border:'none',
-                       color:T.g200, fontSize:13.5, fontWeight:500, cursor:'pointer', transition:'color .15s' }}
+              style={{ padding:'8px 16px', borderRadius:10, background:'none', border:'none',
+                       color:T.g200, fontSize:14, fontWeight:500, cursor:'pointer', transition:'color .15s' }}
               onMouseEnter={e => e.currentTarget.style.color = T.w}
               onMouseLeave={e => e.currentTarget.style.color = T.g200}>
               {t(l.labelKey)}
@@ -199,7 +199,7 @@ export default function NavBar({ setPage, scrolled = false }) {
         </div>
 
         {/* ── Right: lang + account area ── */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+        <div className="se-nav-right">
 
           {/* Language switcher */}
           <div className="hide-sm">
@@ -321,11 +321,11 @@ export default function NavBar({ setPage, scrolled = false }) {
           ) : (
             <>
               <button className="na hide-sm" onClick={() => setPage('auth')}
-                style={{ padding:'7px 14px', fontSize:13.5, borderRadius:9 }}>
+                style={{ padding:'8px 16px', fontSize:14, borderRadius:10 }}>
                 {t('logIn')}
               </button>
               <button className="bp" onClick={() => setPage('get-started')}
-                style={{ padding:'8px 20px', fontSize:13.5, borderRadius:10, gap:6 }}>
+                style={{ padding:'10px 22px', fontSize:14, borderRadius:11, gap:6 }}>
                 {t('getStarted')} <span className="arr">→</span>
               </button>
             </>
