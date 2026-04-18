@@ -1,0 +1,22 @@
+/* Base resets — detailed global styles are injected via tokens.js GLOBAL_CSS */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #050506;
+  color: #fff;
+  font-family: 'Outfit', system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}

@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Env & secrets (never commit real keys)
+.env
+.env.local
+.env.*.local
+server/.env
+env.
+
+# Logs & OS
+*.log
+.DS_Store
+
+# Tooling / local
+.cursor/
+.claude/settings.local.json
+.vscode/
+*.swp
+
+# Test / coverage
+coverage/
