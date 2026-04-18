@@ -13,6 +13,7 @@ create table if not exists profiles (
   display_name  text,
   avatar_url    text,
   stripe_customer_id text,
+  subscription_tier text default 'free',
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
 );

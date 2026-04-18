@@ -10,6 +10,7 @@ import { useCampaigns } from '../hooks/useCampaigns.js'
 import { isSpotifyConnected } from '../lib/spotifyAuth.js'
 import { clearPendingSubmission, getPendingSubmission } from '../lib/pendingSubmission.js'
 import { hasBlockingActiveCampaignForSong } from '../lib/dedupeRules.js'
+import { countCampaignsSinceLocalWeekMonday, getArtistWeeklySubmissionCap } from '../lib/submissionQuota.js'
 
 const NAV = [
   { id:"songs",       icon:"🎵", label:"My Songs"   },
@@ -22,32 +23,21 @@ const NAV = [
 const SESSION_NAV_SECTION = 'se_artist_section'
 const artistSectionStorageKey = (userId) => `se_artist_section_saved_${userId}`
 
-/** Free plan: up to 10 Playlist Push campaigns per week; count resets each Monday (local time). */
-function countCampaignsSinceLocalWeekMonday(campaigns) {
-  if (!Array.isArray(campaigns)) return 0
-  const now = new Date()
-  const dow = now.getDay()
-  const daysFromMonday = dow === 0 ? 6 : dow - 1
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMonday, 0, 0, 0, 0)
-  const t0 = monday.getTime()
-  return campaigns.filter((c) => {
-    const t = new Date(c.created_at || c.createdAt || 0).getTime()
-    return Number.isFinite(t) && t >= t0
-  }).length
-}
-
 /* ── Account summary hero ── */
 function AccountSummary({ user, role, credits, songs, campaigns, onUpgrade }) {
   const spotifyOk = isSpotifyConnected()
   const accentColor = role === 'curator' ? T.gold : role === 'admin' ? T.red : T.gn
-  const planLabel   = role === 'curator' ? 'Curator' : role === 'admin' ? 'Admin' : 'Free'
+  const subTier = user?.profile?.subscription_tier || 'free'
+  const planLabel =
+    role === 'curator' ? 'Curator' : role === 'admin' ? 'Admin' : subTier === 'pro' ? 'Pro' : subTier === 'premium' ? 'Premium' : 'Free'
   const avatarContent = user?.avatar || (user?.name?.slice(0,2).toUpperCase()) || 'ME'
 
   const approved = campaigns?.filter(c => c.status === 'approved').length ?? 0
   const pending  = campaigns?.filter(c => c.status === 'pending').length  ?? 0
-  const submissionsMax = 10
+  const submissionsMax = getArtistWeeklySubmissionCap(user)
   const submissionsUsed = countCampaignsSinceLocalWeekMonday(campaigns || [])
   const submissionsRemaining = Math.max(0, submissionsMax - submissionsUsed)
+  const weeklyCapLabel = subTier === 'free' ? 'free ' : ''
 
   const stats = [
     { label:'Songs',       value: songs?.length ?? 0,  color: T.w      },
@@ -108,7 +98,7 @@ function AccountSummary({ user, role, credits, songs, campaigns, onUpgrade }) {
               <span style={{ width:6, height:6, borderRadius:'50%', background:T.gn,
                              boxShadow:`0 0 6px ${T.gn}`, flexShrink:0 }} />
               <span style={{ fontSize:12.5, fontWeight:700, color:T.w }}>{submissionsRemaining}</span>
-              <span style={{ fontSize:11.5, color:T.g300 }}>free submissions left this week</span>
+              <span style={{ fontSize:11.5, color:T.g300 }}>{weeklyCapLabel}submissions left this week</span>
             </div>
 
             {/* Credits chip + Buy More */}
@@ -147,7 +137,7 @@ function AccountSummary({ user, role, credits, songs, campaigns, onUpgrade }) {
         <div style={{ marginTop:18, paddingTop:16, borderTop:`1px solid ${T.b0}` }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:7 }}>
             <span style={{ fontSize:11.5, color:T.g300, fontWeight:600 }}>
-              Weekly free submissions (resets every Monday)
+              Weekly Playlist Push cap (resets every Monday)
             </span>
             <span className="mono" style={{ fontSize:11.5, color:T.g200 }}>
               {submissionsUsed} / {submissionsMax}
@@ -155,12 +145,14 @@ function AccountSummary({ user, role, credits, songs, campaigns, onUpgrade }) {
           </div>
           <div style={{ height:4, borderRadius:4, background:'rgba(255,255,255,.06)', overflow:'hidden' }}>
             <div style={{ height:'100%', borderRadius:4,
-                          width:`${Math.min(submissionsUsed / submissionsMax * 100, 100)}%`,
+                          width:`${Math.min((submissionsUsed / Math.max(submissionsMax, 1)) * 100, 100)}%`,
                           background:`linear-gradient(90deg,${T.gn},#6de800)`,
                           transition:'width .6s ease' }} />
           </div>
           <div style={{ fontSize:10.5, color:T.g400, marginTop:8, lineHeight:1.45 }}>
-            Free plan includes up to {submissionsMax} Playlist Push campaigns per calendar week (Monday 00:00–Sunday in your local time). Upgrade for unlimited submissions.
+            {subTier === 'free' ? 'Free plan' : subTier === 'pro' ? 'Pro plan' : 'Premium plan'}: up to{' '}
+            {submissionsMax} Playlist Push campaigns per week (Monday 12:00 AM through Sunday, your time zone).
+            {subTier === 'free' ? ' Upgrade to Pro for 20/week.' : ''}
           </div>
         </div>
       </div>
@@ -349,6 +341,16 @@ export default function ArtistDashboard({ setPage }) {
   const handleComplete = async (song, selectedCurators, campaignType, details) => {
     if (hasBlockingActiveCampaignForSong(song, campaigns)) {
       toast.error('This song already has an active submission.', 'Already submitted')
+      return
+    }
+
+    const weeklyCap = getArtistWeeklySubmissionCap(user)
+    const weeklyUsed = countCampaignsSinceLocalWeekMonday(campaigns || [])
+    if (weeklyUsed >= weeklyCap) {
+      toast.error(
+        `Weekly limit reached (${weeklyCap} Playlist Push campaigns per local week, resets Monday 12:00 AM). Upgrade for a higher cap or try again next week.`,
+        'Weekly limit',
+      )
       return
     }
 

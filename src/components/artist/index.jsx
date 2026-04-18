@@ -12,6 +12,7 @@ import { useToast } from '../../context/ToastContext.jsx'
 import { getPendingSubmission } from '../../lib/pendingSubmission.js'
 import { isDev } from '../../lib/env.js'
 import { hasBlockingActiveCampaignForSong } from '../../lib/dedupeRules.js'
+import { FREE_WEEKLY_SUBMISSION_CAP, PRO_WEEKLY_SUBMISSION_CAP } from '../../lib/submissionQuota.js'
 
 /* ── SongSquare ── */
 export function SongSquare({ entry, size = 58, r = 11 }) {
@@ -1389,7 +1390,7 @@ export function BillingSection({ wallet, setWallet }) {
   }
 
   const planRows = [
-    { label: 'Playlist Push campaigns', free: '10 / week (Free cap)', paid: 'Unlimited' },
+    { label: 'Playlist Push campaigns', free: `${FREE_WEEKLY_SUBMISSION_CAP} / week (Free)`, paid: `${PRO_WEEKLY_SUBMISSION_CAP} / week (Pro)` },
     { label: 'Buy extra credits', free: 'Yes (pay-as-you-go)', paid: 'Yes + member perks' },
     { label: 'Curator marketplace', free: 'Full access', paid: 'Full access' },
     { label: 'Support', free: 'Standard', paid: 'Priority' },
@@ -1420,7 +1421,7 @@ export function BillingSection({ wallet, setWallet }) {
             <div style={{ fontSize:10.5, fontWeight:800, color:T.gn, letterSpacing:".08em", textTransform:"uppercase", marginBottom:6 }}>StreamEngine Pro</div>
             <div style={{ fontSize:22, fontWeight:900, color:T.w, marginBottom:4 }}>Upgrade</div>
             <div style={{ fontSize:12.5, color:T.g200, lineHeight:1.55, marginBottom:14 }}>
-              Paid subscription after trial. Unlimited weekly campaigns and priority support.
+              Paid subscription after trial. {PRO_WEEKLY_SUBMISSION_CAP} weekly campaigns and priority support.
             </div>
             <button type="button" className="bp" disabled={subBusy} onClick={startSubscriptionCheckout}
               style={{ width:"100%", padding:"11px 14px", fontSize:13, borderRadius:11, opacity: subBusy ? 0.75 : 1 }}>

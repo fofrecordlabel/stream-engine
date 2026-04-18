@@ -7,6 +7,15 @@ import { isSpotifyConnected, startSpotifyAuth, clearSpotifyToken, hasSpotifyClie
 import { supabase, isDemo } from '../lib/supabase.js'
 import { isStripeConfigured } from '../lib/stripe.js'
 import { apiFetch } from '../lib/apiClient.js'
+import { useCampaigns } from '../hooks/useCampaigns.js'
+import {
+  countCampaignsSinceLocalWeekMonday,
+  FREE_WEEKLY_SUBMISSION_CAP,
+  PRO_WEEKLY_SUBMISSION_CAP,
+  PREMIUM_WEEKLY_SUBMISSION_CAP,
+  getArtistWeeklySubmissionCap,
+} from '../lib/submissionQuota.js'
+import { isDev, isProd } from '../lib/env.js'
 
 /* ── Shared input style helper ── */
 const inputStyle = (focused = false) => ({
@@ -261,20 +270,70 @@ function ProfileSettings({ user }) {
 /* ══════════════════════════
    2. WALLET & MEMBERSHIP
 ══════════════════════════ */
-function WalletSettings({ credits, role, setPage }) {
-  const isPro       = role === 'curator'
-  const accentColor = isPro ? T.gold : T.gn
-  const planLabel   = isPro ? 'Curator' : role === 'admin' ? 'Admin' : 'Free'
-  const subRemaining = 7
-  const subMax       = 10
+function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoading }) {
+  const isCuratorRole = role === 'curator'
+  const accentColor = isCuratorRole ? T.gold : T.gn
+  const subTier = user?.profile?.subscription_tier || 'free'
+  const planLabel =
+    isCuratorRole ? 'Curator' : role === 'admin' ? 'Admin' : subTier === 'pro' ? 'Pro' : subTier === 'premium' ? 'Premium' : 'Free'
+  const subMax = role === 'artist' ? getArtistWeeklySubmissionCap(user) : FREE_WEEKLY_SUBMISSION_CAP
+  const submissionsUsed = role === 'artist' ? countCampaignsSinceLocalWeekMonday(campaigns || []) : 0
+  const submissionsRemaining = Math.max(0, subMax - submissionsUsed)
 
   const PLANS = [
-    { id:'free',    label:'Free',     price:'$0',  perMonth:'month', features:['10 submissions/mo','Basic analytics','Email support'],            current: !isPro },
-    { id:'pro',     label:'Pro',      price:'$29', perMonth:'month', features:['Unlimited submissions','Priority placement','Advanced analytics','Direct curator messages'], current: isPro },
+    {
+      id: 'free',
+      label: 'Free',
+      price: '$0',
+      perMonth: 'month',
+      features: [
+        `Up to ${FREE_WEEKLY_SUBMISSION_CAP} Playlist Push campaigns per week (resets Monday 12:00 AM local)`,
+        'Basic analytics',
+        'Email support',
+      ],
+      current: (role === 'artist' && subTier === 'free') || role === 'admin',
+    },
+    {
+      id: 'pro',
+      label: 'Pro',
+      price: '$30',
+      perMonth: 'month',
+      features: [
+        `Up to ${PRO_WEEKLY_SUBMISSION_CAP} Playlist Push campaigns per week`,
+        'Priority placement',
+        'Advanced analytics',
+        'Direct curator messages',
+      ],
+      current: role === 'artist' && subTier === 'pro',
+    },
+    {
+      id: 'premium',
+      label: 'Premium',
+      price: '$59',
+      perMonth: 'month',
+      features: [
+        `Up to ${PREMIUM_WEEKLY_SUBMISSION_CAP} campaigns per week`,
+        'Higher curator priority',
+        'AI pitch tools',
+        'Early inbox insights (rolling)',
+      ],
+      current: role === 'artist' && subTier === 'premium',
+    },
   ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {isDemo && (
+        <Card style={{ border: `1px solid rgba(255,199,64,.28)`, background: 'rgba(255,199,64,.06)' }}>
+          <div style={{ fontWeight: 800, color: T.gold, marginBottom: 8, fontSize: 14 }}>Cloud data is off (demo mode)</div>
+          <div style={{ fontSize: 13, color: T.g200, lineHeight: 1.55 }}>
+            Add <code style={{ fontSize: 12, color: T.w }}>VITE_SUPABASE_ANON_KEY</code> and{' '}
+            <code style={{ fontSize: 12, color: T.w }}>VITE_SUPABASE_URL</code> in Netlify → Environment variables, then redeploy.
+            Each signed-in user then gets their own saved songs, campaigns, and credits in Supabase.
+          </div>
+        </Card>
+      )}
+
       {/* Current plan */}
       <Card>
         <CardTitle>Current Plan</CardTitle>
@@ -283,7 +342,7 @@ function WalletSettings({ credits, role, setPage }) {
             <div style={{ width: 48, height: 48, borderRadius: 12,
                           background: `${accentColor}14`, border: `1.5px solid ${accentColor}30`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-              {isPro ? '⭐' : '🆓'}
+              {isCuratorRole ? '⭐' : subTier === 'pro' ? '⚡' : subTier === 'premium' ? '💎' : '🆓'}
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -295,12 +354,14 @@ function WalletSettings({ credits, role, setPage }) {
                 </span>
               </div>
               <div style={{ fontSize: 12, color: T.g300 }}>
-                {isPro ? 'Unlimited submissions · Priority placement' : '10 submissions per month · Basic features'}
+                {isCuratorRole
+                  ? 'Unlimited curator workflows · Priority placement'
+                  : `Up to ${subMax} Playlist Push campaigns weekly · resets every Monday 12:00 AM (your time zone)`}
               </div>
             </div>
           </div>
-          {!isPro && role !== 'admin' && (
-            <button onClick={() => setPage('submit')} className="bp"
+          {role === 'artist' && subTier === 'free' && (
+            <button type="button" onClick={() => setPage('subscriptions')} className="bp"
               style={{ padding: '10px 22px', fontSize: 13.5 }}>
               Upgrade to Pro <span className="arr">→</span>
             </button>
@@ -309,24 +370,38 @@ function WalletSettings({ credits, role, setPage }) {
       </Card>
 
       {/* Submissions + credits */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {/* Submissions remaining */}
-        <Card>
-          <div style={{ fontSize: 11, fontWeight: 800, color: T.g300, textTransform: 'uppercase',
-                        letterSpacing: '.1em', marginBottom: 10 }}>Submissions</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-            <span className="mono" style={{ fontSize: 34, fontWeight: 700, color: T.gn, lineHeight: 1 }}>
-              {subRemaining}
-            </span>
-            <span style={{ fontSize: 13, color: T.g300 }}>/ {subMax}</span>
-          </div>
-          <div style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 4,
-                          width: `${((subMax - subRemaining) / subMax) * 100}%`,
-                          background: `linear-gradient(90deg,${T.gn},#6de800)` }} />
-          </div>
-          <div style={{ fontSize: 11, color: T.g300, marginTop: 6 }}>Resets monthly</div>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: role === 'artist' ? '1fr 1fr' : '1fr 1fr', gap: 12 }}>
+        {role === 'artist' ? (
+          <Card>
+            <div style={{ fontSize: 11, fontWeight: 800, color: T.g300, textTransform: 'uppercase',
+                          letterSpacing: '.1em', marginBottom: 10 }}>This week (plan cap)</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+              <span className="mono" style={{ fontSize: 34, fontWeight: 700, color: T.gn, lineHeight: 1 }}>
+                {campaignsLoading ? '…' : submissionsUsed}
+              </span>
+              <span style={{ fontSize: 13, color: T.g300 }}>/ {subMax}</span>
+            </div>
+            <div style={{ fontSize: 12, color: T.g200, marginBottom: 8, lineHeight: 1.45 }}>
+              {submissionsRemaining} submission{submissionsRemaining === 1 ? '' : 's'} left this week
+            </div>
+            <div style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 4,
+                            width: `${Math.min((submissionsUsed / Math.max(subMax, 1)) * 100, 100)}%`,
+                            background: `linear-gradient(90deg,${T.gn},#6de800)` }} />
+            </div>
+            <div style={{ fontSize: 11, color: T.g300, marginTop: 8, lineHeight: 1.45 }}>
+              Count resets every <strong style={{ color: T.g200 }}>Monday at 12:00 AM</strong> in your local time. Same rule for all artists on the Free plan.
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <div style={{ fontSize: 11, fontWeight: 800, color: T.g300, textTransform: 'uppercase',
+                          letterSpacing: '.1em', marginBottom: 10 }}>Weekly artist cap</div>
+            <div style={{ fontSize: 13, color: T.g200, lineHeight: 1.55 }}>
+              The {FREE_WEEKLY_SUBMISSION_CAP}-per-week Free limit applies to <strong style={{ color: T.w }}>artist</strong> Playlist Push campaigns. Curator reviews and payouts use your curator dashboard.
+            </div>
+          </Card>
+        )}
 
         {/* Credits */}
         <Card>
@@ -338,7 +413,7 @@ function WalletSettings({ credits, role, setPage }) {
             </span>
             <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(127,255,0,.5)', letterSpacing: '.08em' }}>CR</span>
           </div>
-          <button onClick={() => setPage('artist')}
+          <button type="button" onClick={() => setPage('artist')}
             style={{ fontSize: 12, fontWeight: 700, color: T.gn, background: 'none', border: 'none',
                      cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
             Buy Credits →
@@ -349,7 +424,7 @@ function WalletSettings({ credits, role, setPage }) {
       {/* Plan comparison */}
       <Card>
         <CardTitle>Plans</CardTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           {PLANS.map(plan => (
             <div key={plan.id}
               style={{ borderRadius: 12, padding: '18px 18px',
@@ -404,21 +479,25 @@ function IntegrationsSettings() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [billingHealth, setBillingHealth] = useState(null)
   const [spotifyApiHealth, setSpotifyApiHealth] = useState(null)
+  const [apiReachable, setApiReachable] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     const run = async () => {
       try {
-        const [b, s] = await Promise.all([
+        const [hr, b, s] = await Promise.all([
+          apiFetch('/health').catch(() => null),
           apiFetch('/api/billing/health').then((r) => r.json()).catch(() => null),
           apiFetch('/api/spotify/health').then((r) => r.json()).catch(() => null),
         ])
         if (!cancelled) {
+          setApiReachable(hr ? hr.ok : false)
           setBillingHealth(b)
           setSpotifyApiHealth(s)
         }
       } catch {
         if (!cancelled) {
+          setApiReachable(false)
           setBillingHealth(null)
           setSpotifyApiHealth(null)
         }
@@ -431,7 +510,9 @@ function IntegrationsSettings() {
   const handleConnectSpotify = async () => {
     if (!hasSpotifyClientId()) {
       toast.error(
-        `Add VITE_SPOTIFY_CLIENT_ID to your root .env. In Spotify Developer Dashboard, set Redirect URI to: ${window.location.origin}/`,
+        isDev
+          ? `Add VITE_SPOTIFY_CLIENT_ID to your root .env. In Spotify Developer Dashboard, set Redirect URI to: ${window.location.origin}/`
+          : 'Spotify client ID is missing. Add VITE_SPOTIFY_CLIENT_ID in Netlify, redeploy, and add this site URL to your Spotify app redirect URIs.',
         'Spotify not configured',
       )
       return
@@ -468,12 +549,23 @@ function IntegrationsSettings() {
       <Card>
         <CardTitle>Service status</CardTitle>
         <div style={{ fontSize: 12, color: T.g300, marginBottom: 12, lineHeight: 1.5 }}>
-          Live data requires root <code style={{ fontSize: 11, color: T.g200 }}>.env</code> (Vite) and <code style={{ fontSize: 11, color: T.g200 }}>server/.env</code> (API). Run <code style={{ fontSize: 11, color: T.g200 }}>npm run dev</code> so <code style={{ fontSize: 11, color: T.g200 }}>/api</code> proxies to the backend.
+          {isProd ? (
+            <>
+              Production: set public keys in <strong style={{ color: T.g200 }}>Netlify</strong> (Vite) and secrets in{' '}
+              <strong style={{ color: T.g200 }}>Render</strong> (API). The browser talks to Supabase directly for your account; the API loads Spotify track metadata and runs Stripe checkout.
+            </>
+          ) : (
+            <>
+              Local dev: use root <code style={{ fontSize: 11, color: T.g200 }}>.env</code> and <code style={{ fontSize: 11, color: T.g200 }}>server/.env</code>, then{' '}
+              <code style={{ fontSize: 11, color: T.g200 }}>npm run dev</code> so <code style={{ fontSize: 11, color: T.g200 }}>/api</code> proxies to the backend.
+            </>
+          )}
         </div>
-        {row('Supabase (app)', !isDemo, isDemo ? 'Set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY' : 'Signed-in data enabled')}
-        {row('Stripe (checkout API)', !!billingHealth?.stripe, billingHealth?.stripe ? 'Server can create Checkout sessions' : 'Set STRIPE_SECRET_KEY (+ Supabase service role) in server/.env')}
-        {row('Spotify metadata API', !!spotifyApiHealth?.ok, spotifyApiHealth?.clientCredentialsConfigured ? 'Web API + richer artwork (server credentials)' : 'Using server oEmbed fallback — add SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET to server/.env for best results')}
-        {row('Stripe (browser)', isStripeConfigured(), isStripeConfigured() ? 'Publishable key loaded' : 'Set VITE_STRIPE_PUBLISHABLE_KEY in root .env')}
+        {row('StreamEngine API', apiReachable === true, apiReachable === false ? 'Unreachable — set VITE_API_ORIGIN (Netlify) and confirm Render is up' : apiReachable == null ? 'Checking…' : 'Reachable')}
+        {row('Supabase (app)', !isDemo, isDemo ? 'Set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY on Netlify, then redeploy — each user’s data is stored in your project' : 'Signed-in — songs, campaigns, and credits persist per user')}
+        {row('Stripe (checkout API)', !!billingHealth?.stripe, billingHealth?.stripe ? 'Server can create Checkout sessions' : 'Set STRIPE_SECRET_KEY (+ Supabase service role) on Render')}
+        {row('Spotify metadata API', !!spotifyApiHealth?.ok, spotifyApiHealth?.clientCredentialsConfigured ? 'Web API + richer artwork (server credentials)' : 'Using server oEmbed fallback — add SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET on Render for best results')}
+        {row('Stripe (browser)', isStripeConfigured(), isStripeConfigured() ? 'Publishable key loaded' : 'Set VITE_STRIPE_PUBLISHABLE_KEY on Netlify')}
       </Card>
 
       {/* Notifications */}
@@ -518,7 +610,7 @@ function IntegrationsSettings() {
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1ed760',
                                    boxShadow: '0 0 6px #1ed760' }} />
                     <span style={{ fontSize: 12, color: '#1ed760', fontWeight: 600 }}>Connected</span>
-                    <span style={{ fontSize: 12, color: T.g300 }}>· spotify_user</span>
+                    <span style={{ fontSize: 12, color: T.g300 }}>· playlist tools enabled</span>
                   </div>
                 : <div style={{ fontSize: 12, color: T.g300 }}>Not connected — link your Spotify account for curator playlist tools (PKCE; no client secret in the browser).</div>
               }
@@ -744,6 +836,10 @@ const CURATOR_SECTION = { id: 'curator', icon: '🎶', label: 'Curator Settings'
 
 export default function SettingsPage({ setPage }) {
   const { user, role, credits } = useAuth()
+  const { campaigns: walletCampaigns, loading: walletCampaignsLoading } = useCampaigns(
+    role === 'artist' ? user?.id : null,
+    'artist',
+  )
   const [section,  setSection]  = useState('profile')
   const [scrolled, setScrolled] = useState(false)
 
@@ -759,7 +855,16 @@ export default function SettingsPage({ setPage }) {
   const renderContent = () => {
     switch (section) {
       case 'profile':      return <ProfileSettings user={user} />
-      case 'wallet':       return <WalletSettings credits={credits} role={role} setPage={setPage} />
+      case 'wallet':       return (
+        <WalletSettings
+          user={user}
+          credits={credits}
+          role={role}
+          setPage={setPage}
+          campaigns={walletCampaigns}
+          campaignsLoading={walletCampaignsLoading}
+        />
+      )
       case 'integrations': return <IntegrationsSettings />
       case 'curator':      return <CuratorSettings user={user} />
       default:             return null

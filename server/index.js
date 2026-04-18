@@ -78,11 +78,42 @@ app.use((req, res, next) => {
   next()
 })
 
+/** Registered before other routes so deploy health probes always return JSON. */
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, service: 'streamengine-api', ts: new Date().toISOString() })
+})
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, service: 'streamengine-api', ts: new Date().toISOString() })
+})
+
 function getSupabaseAdmin() {
   const url = getServerEnv('SUPABASE_URL', 'VITE_SUPABASE_URL')
   const serviceKey = getServerEnv('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !serviceKey) return null
   return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+
+async function setProfileSubscriptionTier(supa, userId, tier) {
+  if (!supa || !userId) return
+  const t = tier === 'pro' || tier === 'premium' ? tier : 'free'
+  const { error } = await supa
+    .from('profiles')
+    .update({ subscription_tier: t, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+  if (error) console.error('[StreamEngine] setProfileSubscriptionTier', error.message)
+}
+
+async function syncSubscriptionTierFromStripeSubscription(subscription) {
+  const supa = getSupabaseAdmin()
+  if (!supa || !subscription) return
+  const userId = subscription.metadata?.user_id || null
+  if (!userId) return
+  const st = subscription.status
+  if (st === 'active' || st === 'trialing' || st === 'past_due') {
+    await setProfileSubscriptionTier(supa, userId, 'pro')
+  } else if (st === 'canceled' || st === 'unpaid' || st === 'incomplete_expired') {
+    await setProfileSubscriptionTier(supa, userId, 'free')
+  }
 }
 
 function getStripe() {
@@ -201,6 +232,10 @@ async function upsertOrderAndCreditsFromCheckoutSession(session) {
     })
   }
 
+  if (String(md.billing_kind || '') === 'subscription' && userId) {
+    await setProfileSubscriptionTier(supa, userId, 'pro')
+  }
+
   return { ok: true, orderId: order.id, status: order.status }
 }
 
@@ -223,6 +258,11 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object
       await upsertOrderAndCreditsFromCheckoutSession(session)
+    }
+
+    if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object
+      await syncSubscriptionTierFromStripeSubscription(sub)
     }
 
     if (event.type === 'checkout.session.expired') {
@@ -654,16 +694,6 @@ app.get('/api/billing/health', (_req, res) => {
     stripe: !!getStripe(),
     supabaseAdmin: !!getSupabaseAdmin(),
   })
-})
-
-/** Lightweight health probe for uptime / debugging (no secrets). */
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'streamengine-api', ts: new Date().toISOString() })
-})
-
-/** Root health check (Render / load balancers often expect a non-/api path). */
-app.get('/health', (_req, res) => {
-  res.status(200).json({ ok: true, service: 'streamengine-api', ts: new Date().toISOString() })
 })
 
 /**

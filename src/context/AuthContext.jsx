@@ -102,7 +102,8 @@ export function AuthProvider({ children }) {
     if (isDemo) {
       const r = email.includes('curator') ? 'curator' : email.includes('admin') ? 'admin' : 'artist'
       const u = DEMO_USERS[r]
-      setUser(u); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
+      const profile = { display_name: u.name, role: r, subscription_tier: 'free' }
+      setUser({ ...u, profile }); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
       return { role: r, error: null }
     }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -115,7 +116,8 @@ export function AuthProvider({ children }) {
     if (isDemo) {
       const r = provider === 'apple' ? 'artist' : 'artist'
       const u = DEMO_USERS[r]
-      setUser(u); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
+      const profile = { display_name: u.name, role: r, subscription_tier: 'free' }
+      setUser({ ...u, profile }); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
       return { role: r, error: null, demo: true }
     }
     const key = String(provider || '').toLowerCase().trim()
@@ -148,8 +150,11 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password, selectedRole = 'artist', displayName = '') => {
     if (isDemo) {
-      const u = { ...DEMO_USERS[selectedRole] || DEMO_USERS.artist, email, name: displayName || email.split('@')[0] }
-      setUser(u); setRole(selectedRole); setCredits(0)
+      const base = DEMO_USERS[selectedRole] || DEMO_USERS.artist
+      const name = displayName || email.split('@')[0]
+      const u = { ...base, email, name }
+      const profile = { display_name: name, role: selectedRole, subscription_tier: 'free' }
+      setUser({ ...u, profile }); setRole(selectedRole); setCredits(0)
       return { role: selectedRole, error: null }
     }
     const name = displayName || email.split('@')[0]

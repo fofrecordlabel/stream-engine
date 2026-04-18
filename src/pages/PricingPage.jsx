@@ -10,7 +10,7 @@ const PLANS = [
     annual: 0,
     tag: null,
     features: [
-      '10 free submissions per week (resets every Monday)',
+      '10 Playlist Push submissions per week (resets every Monday)',
       'Basic analytics dashboard',
       'Email support',
       'Curator discovery',
@@ -21,11 +21,11 @@ const PLANS = [
   {
     key: 'pro',
     name: 'Pro',
-    monthly: 29,
-    annual: 19,
+    monthly: 30,
+    annual: 20,
     tag: 'Most Popular',
     features: [
-      'Unlimited submissions',
+      '20 Playlist Push submissions per week',
       'Priority placement',
       'Advanced analytics',
       'Direct curator messaging',
@@ -40,7 +40,7 @@ const PLANS = [
     annual: 39,
     tag: 'Power Users',
     features: [
-      'Unlimited submissions + higher curator priority',
+      '40 submissions per week + higher curator priority',
       'AI pitch refinement + submission copy optimization',
       'Playlist fit scoring and campaign idea generator',
       'Early access to curator inbox insights',
