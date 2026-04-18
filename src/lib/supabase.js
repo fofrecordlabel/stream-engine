@@ -8,7 +8,14 @@ export const isDemo = !url || !key
 export const supabase = isDemo
   ? null
   : createClient(url, key, {
-      auth: { persistSession: true, autoRefreshToken: true },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'se-supabase-auth',
+      },
     })
 
 if (isDemo) {

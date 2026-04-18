@@ -9,7 +9,7 @@ const API_BASE = 'https://api.spotify.com/v1'
 let cached = { token: null, expiresAt: 0 }
 
 export async function getSpotifyAccessToken() {
-  const id = process.env.SPOTIFY_CLIENT_ID
+  const id = process.env.SPOTIFY_CLIENT_ID || process.env.VITE_SPOTIFY_CLIENT_ID
   const secret = process.env.SPOTIFY_CLIENT_SECRET
   if (!id || !secret) return null
   if (cached.token && Date.now() < cached.expiresAt - 60_000) return cached.token

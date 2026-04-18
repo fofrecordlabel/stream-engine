@@ -23,7 +23,7 @@ import { TermsPage, PrivacyPage, ContactPage, FAQPage, HowItWorksPage } from './
 import { CheckoutSuccessPage, CheckoutCancelPage } from './pages/CheckoutStatusPages.jsx'
 
 /* ── Public pages (no auth required) ── */
-const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
+const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','subscriptions','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
 
 /* ── Role → default page after login ── */
 const ROLE_DEFAULTS = { artist:'artist', curator:'curator', admin:'admin' }
@@ -48,6 +48,7 @@ const PAGES = {
   'submit-playlist': SubmitPlaylistPage,
   settings:         SettingsPage,
   pricing:          PricingPage,
+  subscriptions:  PricingPage,
   blog:             BlogPage,
   'blog-post':      BlogPostPage,
   'checkout-success': CheckoutSuccessPage,
@@ -90,6 +91,8 @@ function AppInner() {
     if (dest === 'admin'   && isLoggedIn && role !== 'admin' && !isAdminUnlocked())   { setPage(ROLE_DEFAULTS[role]); return }
     // Legacy 'submit' alias → submit-song
     if (dest === 'submit') { setPage('submit-song'); return }
+    // Pricing → subscriptions (same screen)
+    if (dest === 'pricing') { setPage('subscriptions'); return }
     setPage(dest)
   }
 
@@ -114,13 +117,16 @@ function AppInner() {
     if (path === 'checkout-success' || path === 'checkout-cancel') {
       setPage(path)
     }
+    if (path === 'pricing' || path === 'subscriptions') {
+      setPage('subscriptions')
+    }
     setInitialHandled(true)
   }, [initialHandled])
 
-  // On auth state change, redirect to correct dashboard
+  // After login, leave marketing home alone — only bounce users off auth screens into their dashboard.
   useEffect(() => {
     if (loading) return
-    if (isLoggedIn && (page === 'auth' || page === 'signup' || page === 'join' || page === 'invite' || page === 'home')) {
+    if (isLoggedIn && (page === 'auth' || page === 'signup' || page === 'join' || page === 'invite')) {
       setPage(ROLE_DEFAULTS[role] || 'artist')
     }
   }, [isLoggedIn, loading, role]) // eslint-disable-line

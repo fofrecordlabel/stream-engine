@@ -1,0 +1,39 @@
+# Deploy the API to Render from the same GitHub repo (Blueprint).
+# https://render.com/docs/blueprint-spec
+#
+# After the first deploy, open the Render service → Environment and set the secrets
+# marked sync: false (Stripe + Supabase service role). Those cannot live in GitHub.
+
+services:
+  - type: web
+    name: streamengine-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/spotify/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        value: https://streamenginev1.netlify.app
+      - key: CORS_ALLOW_ORIGINS
+        value: https://streamenginev1.netlify.app
+      - key: SPOTIFY_CLIENT_ID
+        value: a689918def2f448e9632819a8ec289cd
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: STRIPE_SUBSCRIPTION_PRICE_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

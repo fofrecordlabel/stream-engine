@@ -19,6 +19,9 @@ const NAV = [
   { id:"settings",    icon:"⚙",  label:"Settings"   },
 ]
 
+const SESSION_NAV_SECTION = 'se_artist_section'
+const artistSectionStorageKey = (userId) => `se_artist_section_saved_${userId}`
+
 /** Free plan: up to 10 Playlist Push campaigns per week; count resets each Monday (local time). */
 function countCampaignsSinceLocalWeekMonday(campaigns) {
   if (!Array.isArray(campaigns)) return 0
@@ -274,6 +277,35 @@ export default function ArtistDashboard({ setPage }) {
   const [isMobile,   setIsMobile] = useState(window.innerWidth < 700)
   const [restoringDraft, setRestoringDraft] = useState(false)
 
+  const selectNav = (id) => {
+    if (id === 'settings') {
+      setPage('settings')
+      return
+    }
+    setSection(id)
+  }
+
+  useEffect(() => {
+    if (!user?.id) return
+    try {
+      const pending = sessionStorage.getItem(SESSION_NAV_SECTION)
+      if (pending && NAV.some((n) => n.id === pending)) {
+        setSection(pending)
+        sessionStorage.removeItem(SESSION_NAV_SECTION)
+        return
+      }
+      const saved = localStorage.getItem(artistSectionStorageKey(user.id))
+      if (saved && NAV.some((n) => n.id === saved)) setSection(saved)
+    } catch { /* ignore */ }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) return
+    try {
+      localStorage.setItem(artistSectionStorageKey(user.id), section)
+    } catch { /* ignore */ }
+  }, [section, user?.id])
+
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 700)
     const onScroll = () => setScrolled(window.scrollY > 10)
@@ -381,7 +413,6 @@ export default function ArtistDashboard({ setPage }) {
       case 'submissions': return <ArtistSubmissionsPage onSubmitAgain={handleSubmitAgain} campaigns={campaigns} loading={campaignsLoading} error={campaignsError} />
       case 'billing':     return <BillingSection wallet={wallet} setWallet={setWallet} onBuy={addCredits} />
       case 'analytics':   return <AnalyticsSection />
-      case 'settings':    { setPage('settings'); return null }
       default: return (
         <div>
           <h1 style={{ fontSize:20, fontWeight:800, marginBottom:6, textTransform:'capitalize' }}>{section}</h1>
@@ -422,19 +453,20 @@ export default function ArtistDashboard({ setPage }) {
 
         {/* Desktop sidebar */}
         {!isMobile && (
-          <DesktopSide items={NAV} section={section} setSection={setSection}
+          <DesktopSide items={NAV} section={section} setSection={selectNav}
             wallet={wallet} onBuyCredits={() => setSection('billing')} />
         )}
 
         {/* Main content */}
-        <main style={{ flex:1, overflow:'auto', padding:'28px 24px 80px', minWidth:0 }}>
+        <main style={{ flex:1, overflow:'auto', minWidth:0 }}>
+          <div className="se-dash-main">
 
           {/* Mobile section tabs */}
           {isMobile && (
             <div className="scroll-x" style={{ display:'flex', gap:6, marginBottom:18 }}>
-              {NAV.slice(0,4).map(t => (
-                <button key={t.id} className={`chip ${section===t.id?'csel':'cb'}`}
-                  onClick={() => setSection(t.id)} style={{ flexShrink:0 }}>
+              {NAV.map(t => (
+                <button key={t.id} type="button" className={`chip ${section===t.id?'csel':'cb'}`}
+                  onClick={() => selectNav(t.id)} style={{ flexShrink:0 }}>
                   {t.label}
                 </button>
               ))}
@@ -451,12 +483,13 @@ export default function ArtistDashboard({ setPage }) {
           )}
 
           {renderSection()}
+          </div>
         </main>
       </div>
 
       {/* Mobile drawer */}
       {isMobile && drawer && (
-        <MobileDrawer items={NAV} section={section} setSection={setSection}
+        <MobileDrawer items={NAV} section={section} setSection={selectNav}
           wallet={wallet} onClose={() => setDrawer(false)} />
       )}
     </div>

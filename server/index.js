@@ -15,23 +15,6 @@ dotenv.config({ path: path.join(__dirname, '..', '.env'), override: false })
 const app = express()
 app.disable('x-powered-by')
 
-// Allow direct browser calls to :3333 in dev when Vite proxy fails (localhost / 127.0.0.1, any port).
-app.use((req, res, next) => {
-  const origin = req.headers.origin || ''
-  const allow =
-    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
-    /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin) ||
-    /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin)
-  if (allow) {
-    res.setHeader('Access-Control-Allow-Origin', origin)
-    res.setHeader('Access-Control-Allow-Credentials', 'true')
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Stripe-Signature')
-  }
-  if (req.method === 'OPTIONS') return res.status(204).end()
-  next()
-})
-
 const PORT = (() => {
   const n = Number(process.env.PORT)
   return Number.isFinite(n) && n > 0 ? n : 3333
@@ -49,6 +32,44 @@ async function fetchSpotifyOEmbed(url) {
 function getServerEnv(name, fallbackName = null) {
   return process.env[name] || (fallbackName ? process.env[fallbackName] : undefined)
 }
+
+function corsExtraOrigins() {
+  const raw = getServerEnv('CORS_ALLOW_ORIGINS', '') || ''
+  return raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)
+}
+
+function appUrlOrigin() {
+  const u = getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL')
+  if (!u) return ''
+  try {
+    return new URL(u).origin
+  } catch {
+    return ''
+  }
+}
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin || ''
+  const localhost =
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
+    /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin) ||
+    /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/i.test(origin)
+  const appOrigin = appUrlOrigin()
+  const extras = corsExtraOrigins()
+  const allow =
+    localhost ||
+    (!!origin && appOrigin && origin === appOrigin) ||
+    (!!origin && extras.includes(origin))
+
+  if (allow && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Stripe-Signature')
+  }
+  if (req.method === 'OPTIONS') return res.status(204).end()
+  next()
+})
 
 function getSupabaseAdmin() {
   const url = getServerEnv('SUPABASE_URL', 'VITE_SUPABASE_URL')
@@ -267,9 +288,10 @@ app.get('/api/spotify/track', async (req, res) => {
 })
 
 app.get('/api/spotify/health', (_req, res) => {
+  const id = getServerEnv('SPOTIFY_CLIENT_ID', 'VITE_SPOTIFY_CLIENT_ID')
   res.json({
     ok: true,
-    clientCredentialsConfigured: !!(getServerEnv('SPOTIFY_CLIENT_ID') && getServerEnv('SPOTIFY_CLIENT_SECRET')),
+    clientCredentialsConfigured: !!(id && getServerEnv('SPOTIFY_CLIENT_SECRET')),
   })
 })
 

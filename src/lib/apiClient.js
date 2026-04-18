@@ -48,3 +48,14 @@ export async function apiFetch(path, init = {}) {
   }
   throw lastErr || new Error('API unreachable')
 }
+
+/** Shown when track metadata fails (null response) — dev vs production hosting */
+export function spotifyMetadataUnavailableMessage() {
+  if (import.meta.env.DEV) {
+    return 'Could not reach the API. Start the backend (for example `npm run dev` in `server/`) so `/api` is available.'
+  }
+  if (!import.meta.env.VITE_API_ORIGIN) {
+    return 'Could not reach the API. On Netlify, set `VITE_API_ORIGIN` to your API base URL (no trailing slash) and redeploy, or proxy `/api` to your server.'
+  }
+  return 'Could not load track metadata. The API may be busy—try again in a moment.'
+}

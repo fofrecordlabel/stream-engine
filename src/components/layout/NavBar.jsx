@@ -93,7 +93,7 @@ function LangSwitcher() {
 
 /* ── Nav links (public) ── */
 const PUBLIC_LINKS = [
-  { labelKey:'pricing', page:'pricing' },
+  { labelKey:'subscriptions', page:'subscriptions' },
   { labelKey:'tools',   page:'tools' },
   { labelKey:'blog',    page:'blog' },
 ]
@@ -143,8 +143,7 @@ export default function NavBar({ setPage, scrolled = false }) {
                   backdropFilter:'blur(24px)',
                   borderBottom:`1px solid ${scrolled ? T.b1 : 'rgba(255,255,255,.04)'}`,
                   transition:'all .25s ease' }}>
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px', paddingRight:'calc(24px + var(--se-right-gutter))', height:60,
-                    display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+      <div className="se-nav-inner">
 
         {/* ── Left: brand ── */}
         <div

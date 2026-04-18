@@ -50,6 +50,12 @@ export function AuthProvider({ children }) {
     return r
   }, [])
 
+  const refreshProfile = useCallback(async () => {
+    if (isDemo) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) await loadProfile(session.user)
+  }, [loadProfile])
+
   /* ── Session init ── */
   useEffect(() => {
     if (isDemo) { setLoading(false); return }
@@ -65,6 +71,19 @@ export function AuthProvider({ children }) {
     })
 
     return () => subscription.unsubscribe()
+  }, [loadProfile])
+
+  /* ── Tab focus: refresh profile (credits) after Stripe checkout or long idle ── */
+  useEffect(() => {
+    if (isDemo) return
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) loadProfile(session.user)
+      })
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
   }, [loadProfile])
 
   /* ── Auth actions ── */
@@ -170,6 +189,7 @@ export function AuthProvider({ children }) {
       signInWithProvider,
       requestPasswordReset,
       updatePassword,
+      refreshProfile,
       addCredits, spendCredits,
       setCredits,
     }}>

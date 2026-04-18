@@ -7,6 +7,7 @@ import { GENRES, FAQS_DATA } from '../data/index.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { fetchSpotifyTrack, isSpotifyTrackUrl, accentFromGenre } from '../lib/spotify.js'
+import { spotifyMetadataUnavailableMessage } from '../lib/apiClient.js'
 import { setPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
 
 export default function HomePage({ setPage }) {
@@ -22,7 +23,6 @@ export default function HomePage({ setPage }) {
   const [fetching, setFetching] = useState(false);
   const [heroError, setHeroError] = useState('');
   const [heroSuccess, setHeroSuccess] = useState('');
-  const pricingRef = useRef(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
@@ -30,7 +30,7 @@ export default function HomePage({ setPage }) {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const scrollToPricing = () => pricingRef.current?.scrollIntoView({ behavior:"smooth", block:"start" });
+  const goSubscriptions = () => setPage('subscriptions')
 
   const isUrl = isSpotifyTrackUrl(query.trim()) || query.includes("spotify:track");
   const displayCurators = []
@@ -49,7 +49,7 @@ export default function HomePage({ setPage }) {
     try {
       const track = await fetchSpotifyTrack(spotifyUrl)
       if (!track) {
-        setHeroError('Could not load metadata. Is the backend running (npm run dev) and reachable at /api?')
+        setHeroError(spotifyMetadataUnavailableMessage())
         return
       }
 
@@ -90,10 +90,11 @@ export default function HomePage({ setPage }) {
       <NavBar setPage={setPage} scrolled={scrolled} />
 
       {/* HERO */}
-      <section style={{ position:"relative", minHeight:"100vh", display:"flex", alignItems:"center", padding:"110px 20px 80px", overflow:"hidden" }}>
+      <section style={{ position:"relative", minHeight:"100vh", display:"flex", alignItems:"center", padding:"110px 0 80px", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:"20%", left:"50%", transform:"translateX(-50%)", width:800, height:560, background:"radial-gradient(ellipse,rgba(127,255,0,.07) 0%,transparent 62%)", pointerEvents:"none" }} />
         <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px)", backgroundSize:"60px 60px", pointerEvents:"none" }} />
-        <div style={{ maxWidth:700, margin:"0 auto", width:"100%", position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
+        <div className="se-shell" style={{ position:"relative", display:"flex", justifyContent:"center" }}>
+        <div style={{ maxWidth:'min(720px, 100%)', width:"100%", position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
           <div className="fu1" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"5px 14px 5px 7px", borderRadius:30, background:T.gnGl, border:`1px solid ${T.gnB}`, marginBottom:26 }}>
             <span style={{ background:T.gn, color:"#000", fontWeight:900, fontSize:9.5, padding:"3px 9px", borderRadius:20, letterSpacing:".05em" }}>LIVE</span>
             <Dot size={5} pulse />
@@ -130,7 +131,7 @@ export default function HomePage({ setPage }) {
             <button type="button" className="bp" onClick={() => { if (isUrl) void continueFromHero(); else setPage('get-started') }} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:130 }}>
               {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
             </button>
-            <button className="bs" onClick={scrollToPricing} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:110 }}>Pricing</button>
+            <button type="button" className="bs" onClick={goSubscriptions} style={{ flex:1, padding:"13px 20px", fontSize:15, minWidth:110 }}>Subscriptions</button>
           </div>
           <div className="fu5" style={{ display:"flex", gap:7, justifyContent:"center", flexWrap:"wrap" }}>
             {[{i:"✓",t:"Verified curators"},{i:"🎯",t:"Multi-select campaign"},{i:"🔒",t:"Credit refund guarantee"},{i:"⚡",t:"18h avg response"}].map(t => (
@@ -140,11 +141,12 @@ export default function HomePage({ setPage }) {
             ))}
           </div>
         </div>
+        </div>
       </section>
 
       {/* STATS */}
       <div style={{ borderTop:"1px solid rgba(255,255,255,.05)", borderBottom:"1px solid rgba(255,255,255,.05)" }}>
-        <div style={{ maxWidth:1100, margin:"0 auto", padding:"36px 20px", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:16 }}>
+        <div className="se-shell" style={{ paddingTop:36, paddingBottom:36, display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:16 }}>
           {[{n:"3,200+",l:"Curators"},{n:"18K+",l:"Artists Promoted"},{n:"94%",l:"Avg Response Rate"},{n:"$2.4M",l:"Paid to Curators"}].map(s => (
             <div key={s.n} style={{ textAlign:"center" }}>
               <div className="mono" style={{ fontSize:"clamp(22px,3.5vw,32px)", fontWeight:500, color:T.gn, lineHeight:1, marginBottom:5 }}>{s.n}</div>
@@ -155,8 +157,8 @@ export default function HomePage({ setPage }) {
       </div>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding:"80px 20px", background:`linear-gradient(180deg,${T.bg1},${T.bg})` }}>
-        <div style={{ maxWidth:1100, margin:"0 auto" }}>
+      <section style={{ padding:"80px 0", background:`linear-gradient(180deg,${T.bg1},${T.bg})` }}>
+        <div className="se-shell">
           <SectionLabel>How It Works</SectionLabel>
           <h2 style={{ fontSize:"clamp(24px,4vw,40px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:12 }}>Four steps to playlist placement</h2>
           <p style={{ color:T.g200, fontSize:15, marginBottom:48, maxWidth:440 }}>Paste your track, pick curators, submit one campaign.</p>
@@ -181,13 +183,13 @@ export default function HomePage({ setPage }) {
       </section>
 
       {/* CURATOR SHOWCASE */}
-      <section style={{ padding:"80px 20px", background:T.bg }}>
-        <div style={{ maxWidth:1100, margin:"0 auto" }}>
+      <section style={{ padding:"80px 0", background:T.bg }}>
+        <div className="se-shell">
           <SectionLabel color="#ff6b35">🔥 Featured Curators</SectionLabel>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:14, marginBottom:24 }}>
             <div>
               <h2 style={{ fontSize:"clamp(22px,4vw,38px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:7 }}>Browse top Spotify curators</h2>
-              <p style={{ color:T.g200, fontSize:14.5 }}>All verified · Credit-based pricing</p>
+              <p style={{ color:T.g200, fontSize:14.5 }}>All verified · Credit-based campaigns</p>
             </div>
             <button className="bs" onClick={() => setPage("artist")} style={{ padding:"10px 18px", fontSize:13.5 }}>View All →</button>
           </div>
@@ -234,19 +236,19 @@ export default function HomePage({ setPage }) {
         </div>
       </section>
 
-      {/* PRICING */}
-      <section ref={pricingRef} id="pricing" style={{ padding:"80px 20px", background:T.bg1, borderTop:"1px solid rgba(255,255,255,.05)", scrollMarginTop:"60px" }}>
-        <div style={{ maxWidth:860, margin:"0 auto" }}>
-          <SectionLabel>Pricing</SectionLabel>
+      {/* SUBSCRIPTIONS */}
+      <section id="subscriptions" style={{ padding:"80px 0", background:T.bg1, borderTop:"1px solid rgba(255,255,255,.05)", scrollMarginTop:"60px" }}>
+        <div className="se-shell" style={{ maxWidth:860 }}>
+          <SectionLabel>Subscriptions</SectionLabel>
           <h2 style={{ fontSize:"clamp(24px,4vw,40px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:10 }}>Buy credits, submit to curators</h2>
           <p style={{ color:T.g200, fontSize:15, marginBottom:18 }}>Credits never expire · Stripe checkout</p>
           <div style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:18, padding:"20px 18px" }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
               <div style={{ color:T.g200, fontSize:13.5, lineHeight:1.6 }}>
-                View pricing and purchase credits from your billing screen.
+                Open the subscriptions page for plans, or purchase credits from billing in your dashboard.
               </div>
-              <button className="bp" onClick={() => setPage(isLoggedIn ? 'artist' : 'pricing')} style={{ padding:"11px 18px", fontSize:13.5, borderRadius:11 }}>
-                View pricing →
+              <button type="button" className="bp" onClick={() => setPage(isLoggedIn ? 'artist' : 'subscriptions')} style={{ padding:"11px 18px", fontSize:13.5, borderRadius:11 }}>
+                View subscriptions →
               </button>
             </div>
           </div>
@@ -254,8 +256,8 @@ export default function HomePage({ setPage }) {
       </section>
 
       {/* TESTIMONIALS */}
-      <section style={{ padding:"80px 20px", background:T.bg }}>
-        <div style={{ maxWidth:1100, margin:"0 auto" }}>
+      <section style={{ padding:"80px 0", background:T.bg }}>
+        <div className="se-shell">
           <SectionLabel>Results</SectionLabel>
           <h2 style={{ fontSize:"clamp(22px,4vw,38px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:14 }}>Track outcomes over time</h2>
           <p style={{ color:T.g200, fontSize:14.5, maxWidth:560, lineHeight:1.7 }}>
@@ -265,8 +267,8 @@ export default function HomePage({ setPage }) {
       </section>
 
       {/* FAQ */}
-      <section style={{ padding:"80px 20px", background:T.bg1, borderTop:"1px solid rgba(255,255,255,.05)" }}>
-        <div style={{ maxWidth:680, margin:"0 auto" }}>
+      <section style={{ padding:"80px 0", background:T.bg1, borderTop:"1px solid rgba(255,255,255,.05)" }}>
+        <div className="se-shell" style={{ maxWidth:680 }}>
           <SectionLabel>FAQ</SectionLabel>
           <h2 style={{ fontSize:"clamp(22px,4vw,36px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:38 }}>Common questions</h2>
           {FAQS_DATA.map((f, i) => (
@@ -284,9 +286,9 @@ export default function HomePage({ setPage }) {
       </section>
 
       {/* FINAL CTA */}
-      <section style={{ padding:"90px 20px", textAlign:"center", position:"relative", overflow:"hidden" }}>
+      <section style={{ padding:"90px 0", textAlign:"center", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:400, background:"radial-gradient(ellipse,rgba(127,255,0,.08) 0%,transparent 65%)", pointerEvents:"none" }} />
-        <div style={{ maxWidth:580, margin:"0 auto", position:"relative" }}>
+        <div className="se-shell" style={{ maxWidth:580, position:"relative" }}>
           <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 14px", borderRadius:20, background:T.gnGl, border:`1px solid ${T.gnB}`, marginBottom:24 }}>
             <Dot size={5} /><span style={{ fontSize:12, color:T.gn, fontWeight:700 }}>Join 18,000+ artists</span>
           </div>
@@ -296,20 +298,20 @@ export default function HomePage({ setPage }) {
           <p style={{ color:T.g200, fontSize:15.5, marginBottom:32, lineHeight:1.7 }}>Paste your track and submit to real curators in minutes.</p>
           <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap", maxWidth:360, margin:"0 auto" }}>
             <button className="bp" onClick={continueFromHero} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:140 }}>Get Started Free <span className="arr">→</span></button>
-            <button className="bs" onClick={scrollToPricing} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:110 }}>Pricing</button>
+            <button type="button" className="bs" onClick={goSubscriptions} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:110 }}>Subscriptions</button>
           </div>
           <div style={{ marginTop:16, fontSize:13, color:T.g400 }}>No subscription · Credits never expire · Free to browse</div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ borderTop:"1px solid rgba(255,255,255,.05)", padding:"32px 20px" }}>
-        <div style={{ maxWidth:1100, margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:18, marginBottom:20 }}>
+      <footer style={{ borderTop:"1px solid rgba(255,255,255,.05)", padding:"32px 0" }}>
+        <div className="se-shell">
+          <div className="se-footer-row">
             <BrandMark onClick={() => setPage("home")} size={28} />
-            <div style={{ display:"flex", gap:20, flexWrap:"wrap" }}>
+            <div className="se-footer-links">
               {[
-                { l:"Pricing",      p:"pricing" },
+                { l:"Subscriptions", p:"subscriptions" },
                 { l:"How It Works", p:"how-it-works" },
                 { l:"FAQ",          p:"faq" },
                 { l:"Contact",      p:"contact" },
@@ -329,7 +331,7 @@ export default function HomePage({ setPage }) {
             </div>
           </div>
           <div style={{ height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)", marginBottom:18 }} />
-          <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+          <div className="se-footer-bottom">
             <div style={{ fontSize:13, color:T.g400 }}>© 2025 Stream Engine Inc. All rights reserved.</div>
             <div style={{ display:"flex", gap:16, alignItems:"center" }}>
               <span style={{ fontSize:13, color:T.g400 }}>Stripe-powered · Spotify-only</span>

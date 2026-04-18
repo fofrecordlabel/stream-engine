@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { apiFetch } from '../lib/apiClient.js'
+import { useAuth } from '../context/AuthContext.jsx'
+
+const PENDING_BILLING = 'se_artist_section'
 
 function Layout({ setPage, title, subtitle, tone = 'success', children }) {
   const [scrolled, setScrolled] = useState(false)
@@ -30,8 +33,8 @@ function Layout({ setPage, title, subtitle, tone = 'success', children }) {
         </div>
 
         <div style={{ marginTop:18, display:'flex', gap:10, flexWrap:'wrap' }}>
-          <button className="bp" onClick={() => setPage('billing')} style={{ padding:'10px 16px' }}>Go to Billing →</button>
-          <button className="bt" onClick={() => setPage('artist')} style={{ padding:'10px 16px' }}>Back to Dashboard</button>
+          <button type="button" className="bp" onClick={() => { try { sessionStorage.setItem(PENDING_BILLING, 'billing') } catch {} ; setPage('artist') }} style={{ padding:'10px 16px' }}>Go to Billing →</button>
+          <button type="button" className="bt" onClick={() => setPage('artist')} style={{ padding:'10px 16px' }}>Back to Dashboard</button>
         </div>
       </div>
     </div>
@@ -39,6 +42,7 @@ function Layout({ setPage, title, subtitle, tone = 'success', children }) {
 }
 
 export function CheckoutSuccessPage({ setPage }) {
+  const { refreshProfile } = useAuth()
   const qs = new URLSearchParams(window.location.search)
   const sessionId = qs.get('session_id') || null
   const [syncing, setSyncing] = useState(!!sessionId)
@@ -60,6 +64,7 @@ export function CheckoutSuccessPage({ setPage }) {
         const data = await res.json().catch(() => ({}))
         if (!res.ok || !data?.ok) throw new Error(data?.error || `Sync failed (${res.status})`)
         if (!cancelled) setSyncResult(data)
+        if (!cancelled) await refreshProfile?.()
       } catch (e) {
         if (!cancelled) setSyncError(e?.message || 'Sync failed')
       } finally {
@@ -68,7 +73,7 @@ export function CheckoutSuccessPage({ setPage }) {
     }
     run()
     return () => { cancelled = true }
-  }, [sessionId])
+  }, [sessionId, refreshProfile])
 
   return (
     <Layout

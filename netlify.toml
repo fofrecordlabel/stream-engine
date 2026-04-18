@@ -1,0 +1,26 @@
+# Netlify reads this from GitHub — no dashboard env required for the variables below.
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Spotify Client ID (public; shipped in the browser bundle).
+  VITE_SPOTIFY_CLIENT_ID = "a689918def2f448e9632819a8ec289cd"
+  # Your Netlify site (Stripe success/cancel + OAuth redirect). Edit if the site name changes.
+  VITE_APP_URL = "https://streamenginev1.netlify.app"
+  # Must match the URL of your deployed Express API (see render.yaml → service name).
+  VITE_API_ORIGIN = "https://streamengine-api.onrender.com"
+
+# SPA: client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# If the Netlify build shows demo / missing data, add these under [build.environment] (anon + publishable keys are public):
+# VITE_SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
+# VITE_SUPABASE_ANON_KEY = "eyJhbG..."
+# VITE_STRIPE_PUBLISHABLE_KEY = "pk_live_..."

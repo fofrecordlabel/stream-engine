@@ -80,7 +80,7 @@ a{color:inherit;text-decoration:none}
 .na{color:#969696;font-size:14px;font-weight:500;cursor:pointer;background:none;border:none;padding:0;transition:color .15s}
 .na:hover{color:#fff}
 
-.sni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;width:100%;text-align:left;border:none;font-size:13.5px;font-weight:500;transition:all .15s;border-left:2px solid transparent;background:none;color:#606060}
+.sni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;width:100%;text-align:left;border:none;font-size:13.5px;font-weight:500;transition:all .15s;border-left:2px solid transparent;background:none;color:#606060}
 .sni:hover{background:rgba(255,255,255,.04);color:#d0d0d0}
 .sni.act{background:rgba(127,255,0,.08);color:#7fff00;border-left-color:#7fff00;font-weight:700}
 
@@ -88,11 +88,43 @@ a{color:inherit;text-decoration:none}
 .scroll-x::-webkit-scrollbar{display:none}
 .mono{font-family:'DM Mono',monospace}
 
+/* Centered content column — desktop + mobile */
+.se-shell{
+  max-width:min(1120px,calc(100vw - 2 * clamp(14px,4vw,40px)));
+  margin-left:auto;
+  margin-right:auto;
+  width:100%;
+  padding-left:clamp(14px,4vw,32px);
+  padding-right:clamp(14px,4vw,32px);
+  box-sizing:border-box;
+}
+.se-nav-inner{
+  max-width:1120px;
+  margin:0 auto;
+  width:100%;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-left:clamp(14px,4vw,28px);
+  padding-right:calc(clamp(14px,4vw,28px) + var(--se-right-gutter));
+  box-sizing:border-box;
+}
+.se-footer-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;margin-bottom:20px}
+.se-footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.se-footer-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.se-dash-main{max-width:min(960px,100%);margin:0 auto;width:100%;padding:28px clamp(16px,4vw,28px) 80px;box-sizing:border-box}
+
 @media(max-width:700px){
   .hide-sm{display:none !important}
   .bp,.bs{font-size:13.5px;padding:10px 16px}
   .sm-full{width:100%;justify-content:center}
   nav{overflow:hidden}
   nav .bp{padding:8px 16px 8px 13px;font-size:12.5px;min-width:0}
+  .se-footer-row{flex-direction:column;text-align:center;align-items:center}
+  .se-footer-links{justify-content:center}
+  .se-footer-bottom{flex-direction:column;text-align:center;justify-content:center;align-items:center}
+  .se-dash-main{padding-top:18px;padding-bottom:64px}
 }
 `;
