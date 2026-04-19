@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import OpenAI from 'openai'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { fetchTrackFromWebApi, fetchPlaylistFromWebApi } from './spotifyServer.js'
+import { fetchTrackFromWebApi, fetchPlaylistFromWebApi, searchTracksFromWebApi } from './spotifyServer.js'
 import { normalizeSpotifyPlaylistUrl, normalizeSpotifyTrackUrl } from './spotifyUrls.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -332,6 +332,29 @@ app.get('/api/spotify/track', async (req, res) => {
     })
   } catch (e) {
     return res.status(500).json({ ok: false, error: e?.message || 'Spotify fetch failed' })
+  }
+})
+
+/** GET /api/spotify/search?q=artist+or+song&limit=10 — requires server Spotify client credentials. */
+app.get('/api/spotify/search', async (req, res) => {
+  try {
+    const q = String(req.query?.q || '').trim()
+    if (q.length < 2) {
+      return res.status(400).json({ ok: false, error: 'Enter at least 2 characters' })
+    }
+    const limit = Math.min(20, Math.max(1, parseInt(String(req.query?.limit || '10'), 10) || 10))
+    const tracks = await searchTracksFromWebApi(q, limit)
+    if (tracks == null) {
+      return res.json({
+        ok: true,
+        tracks: [],
+        searchConfigured: false,
+        hint: 'Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the API server (Render) to enable live search.',
+      })
+    }
+    return res.json({ ok: true, tracks, searchConfigured: true })
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || 'Search failed' })
   }
 })
 

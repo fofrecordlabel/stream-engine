@@ -30,13 +30,12 @@ function collectApiUrls(path) {
     if (u && !urls.includes(u)) urls.push(u)
   }
   const remote = import.meta.env.VITE_API_ORIGIN
-  /* Production (non-localhost): hit configured API first so a broken Netlify /api proxy never returns HTML 404. */
-  const preferRemoteFirst = import.meta.env.PROD && !!remote && !isBrowserLocalhost()
-  if (preferRemoteFirst) {
-    add(apiUrl(p))
+  /* Production: same-origin `/api/*` first (Netlify proxy → Render). Then direct API origin as fallback. */
+  const prodSplitHost = import.meta.env.PROD && !!remote && !isBrowserLocalhost()
+  if (prodSplitHost) {
     add(p)
+    add(apiUrl(p))
   } else {
-    /* Dev: same-origin first (Vite proxy). */
     add(p)
     if (remote) add(apiUrl(p))
   }

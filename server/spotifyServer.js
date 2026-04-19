@@ -81,3 +81,32 @@ export async function fetchPlaylistFromWebApi(playlistId) {
     trackCount: pl.tracks?.total ?? null,
   }
 }
+
+/**
+ * Search tracks (client credentials). Returns null if Spotify is not configured on the server.
+ * @returns {Promise<null | Array<{ id: string, title: string, artist: string, artworkUrl: string|null, spotifyUrl: string, previewUrl: string|null, durationMs: number|null }>>}
+ */
+export async function searchTracksFromWebApi(q, limit = 10) {
+  const token = await getSpotifyAccessToken()
+  if (!token) return null
+  const lim = Math.min(Math.max(1, Number(limit) || 10), 50)
+  const r = await fetch(
+    `${API_BASE}/search?type=track&q=${encodeURIComponent(String(q).trim())}&limit=${lim}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!r.ok) return []
+  const data = await r.json()
+  const items = data?.tracks?.items || []
+  return items.map((t) => {
+    const images = t.album?.images || []
+    return {
+      id: t.id,
+      title: t.name || '',
+      artist: (t.artists || []).map((a) => a.name).join(', '),
+      artworkUrl: images.length ? images[0].url : null,
+      spotifyUrl: t.external_urls?.spotify || `https://open.spotify.com/track/${t.id}`,
+      previewUrl: t.preview_url || null,
+      durationMs: t.duration_ms ?? null,
+    }
+  })
+}

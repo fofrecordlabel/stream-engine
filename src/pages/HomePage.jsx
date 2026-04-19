@@ -1,29 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { BrandMark } from '../components/common/Logo.jsx'
-import { Dot, SectionLabel, VerifiedMark, SpotifyBadge, CreditPill, SpotifySearchBar } from '../components/common/Atoms.jsx'
+import { Dot, SectionLabel, VerifiedMark, SpotifyBadge, CreditPill } from '../components/common/Atoms.jsx'
+import HeroSpotifySearch from '../components/home/HeroSpotifySearch.jsx'
 import { GENRES, FAQS_DATA } from '../data/index.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useToast } from '../context/ToastContext.jsx'
-import { fetchSpotifyTrack, isSpotifyTrackUrl, accentFromGenre } from '../lib/spotify.js'
-import { spotifyMetadataUnavailableMessage } from '../lib/apiClient.js'
-import { setPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
 
 export default function HomePage({ setPage }) {
   const { isLoggedIn } = useAuth()
-  const loggedInRef = useRef(isLoggedIn)
-  useEffect(() => { loggedInRef.current = isLoggedIn }, [isLoggedIn])
-  const toast = useToast()
   const [scrolled, setScrolled] = useState(false);
-  const [query,    setQuery]    = useState("");
-  const [focused,  setFocused]  = useState(false);
   const [genre,    setGenre]    = useState("All");
   const [openFaq,  setOpenFaq]  = useState(null);
-  const [fetching, setFetching] = useState(false);
-  const [heroError, setHeroError] = useState('');
-  const [heroSuccess, setHeroSuccess] = useState('');
-  const [heroPreview, setHeroPreview] = useState(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
@@ -33,165 +21,195 @@ export default function HomePage({ setPage }) {
 
   const goPricingPage = () => setPage('subscriptions')
 
-  const isUrl = isSpotifyTrackUrl(query.trim())
   const displayCurators = []
-
-  const proceedAfterHero = useCallback(() => {
-    setHeroPreview(null)
-    setHeroSuccess('')
-    if (loggedInRef.current) setPage('artist')
-    else setPage('auth')
-  }, [setPage])
-
-  const continueFromHero = useCallback(async () => {
-    const spotifyUrl = query.trim()
-    setHeroError('')
-    setHeroSuccess('')
-    setHeroPreview(null)
-
-    if (!isSpotifyTrackUrl(spotifyUrl)) {
-      setHeroError('Paste a valid Spotify track link to continue.')
-      return
-    }
-
-    setFetching(true)
-    try {
-      const track = await fetchSpotifyTrack(spotifyUrl)
-      if (!track) {
-        setHeroError(spotifyMetadataUnavailableMessage())
-        return
-      }
-
-      const song = normalizePendingSong({
-        ...track,
-        spotifyUrl: track.spotifyUrl || spotifyUrl,
-        trackId: track.id,
-        spotifyId: track.id,
-        genre: '',
-        ac: accentFromGenre(''),
-      })
-
-      setPendingSubmission({
-        source: 'home-hero',
-        intent: 'playlist_push',
-        resumeAfterAuth: true,
-        status: 'metadata-ready',
-        song,
-      })
-
-      const artistBit = track.artist ? ` · ${track.artist}` : ''
-      setHeroSuccess(`Loaded “${track.title}”${artistBit}.`)
-      setHeroPreview({
-        title: track.title || 'Track',
-        artist: track.artist || '',
-        artworkUrl: track.artworkUrl || null,
-      })
-      toast.success(`${track.title} is ready for Playlist Push`, 'Track loaded')
-    } catch (e) {
-      setHeroError(e?.message || 'Could not fetch Spotify metadata.')
-    } finally {
-      setFetching(false)
-    }
-  }, [query])
 
   return (
     <div style={{ background:T.bg, color:T.w, minHeight:"100vh", width:"100%", overflowX:"hidden" }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
 
-      {/* HERO */}
-      <section style={{ position:"relative", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"118px 0 88px", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:"14%", left:"50%", transform:"translateX(-50%)", width:920, height:620, background:"radial-gradient(ellipse at center,rgba(127,255,0,.11) 0%,rgba(127,255,0,.04) 38%,transparent 68%)", pointerEvents:"none", filter:"blur(0px)" }} />
-        <div style={{ position:"absolute", top:"42%", left:"8%", width:340, height:340, borderRadius:"50%", background:"radial-gradient(circle,rgba(99,102,241,.06) 0%,transparent 70%)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px)", backgroundSize:"60px 60px", pointerEvents:"none", opacity:0.85 }} />
-        <div className="se-shell" style={{ position:"relative", width:"100%", display:"flex", justifyContent:"center", boxSizing:"border-box" }}>
-        <div style={{ maxWidth:"min(760px, 100%)", width:"100%", margin:"0 auto", boxSizing:"border-box", position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
-          <div className="fu1" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"7px 18px 7px 9px", borderRadius:30, background:`linear-gradient(135deg,${T.gnGl},rgba(255,255,255,.03))`, border:`1px solid ${T.gnB}`, boxShadow:"0 12px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(127,255,0,.08) inset", marginBottom:22 }}>
-            <span style={{ background:`linear-gradient(135deg,${T.gn},#5ac800)`, color:"#000", fontWeight:900, fontSize:9.5, padding:"3px 9px", borderRadius:20, letterSpacing:".05em", boxShadow:"0 0 16px rgba(127,255,0,.35)" }}>LIVE</span>
-            <Dot size={5} pulse />
-            <span style={{ fontSize:13, color:T.g100, fontWeight:500 }}>3,200+ verified Spotify curators</span>
-          </div>
-          <h1 className="fu2" style={{ fontSize:"clamp(46px,7.2vw,88px)", fontWeight:900, lineHeight:1.02, letterSpacing:"-.045em", marginBottom:24, maxWidth:"100%", textShadow:"0 24px 80px rgba(0,0,0,.45)" }}>
-            Get your music<br />onto Spotify<br />
-            <span style={{ color:T.gn, animation:"glow 3.5s ease-in-out infinite" }}>playlists.</span>
-          </h1>
-          <p className="fu3" style={{ fontSize:"clamp(15px,2.1vw,19px)", color:T.g200, lineHeight:1.82, marginBottom:36, maxWidth:540, width:"100%" }}>
-            Paste your Spotify track once, save it to your account, and launch one Playlist Push campaign. Credit packs plus optional Pro subscription. Transparent. Fast.
-          </p>
-          <div className="fu4" style={{ width:"100%", maxWidth:600, marginBottom:22 }}>
-            <form onSubmit={e => { e.preventDefault(); continueFromHero(); }} style={{
-              position:"relative",
-              padding:14,
-              borderRadius:18,
-              background:"linear-gradient(145deg,rgba(16,16,19,.92),rgba(8,8,10,.75))",
-              border:`1px solid ${focused ? T.gnB : 'rgba(255,255,255,.08)'}`,
-              boxShadow:focused ? `0 0 0 1px ${T.gnB}, 0 20px 60px rgba(0,0,0,.55)` : "0 20px 60px rgba(0,0,0,.45)",
-              transition:"border-color .2s, box-shadow .2s",
-            }}>
-              <SpotifySearchBar value={query} onChange={(v) => { setQuery(v); setHeroSuccess(''); setHeroError(''); setHeroPreview(null) }} onFocus={() => setFocused(true)} onBlur={() => setTimeout(() => setFocused(false), 150)} focused={focused} large placeholder="Paste a Spotify track link…" />
-              {query && (
-                <button type="submit" disabled={fetching} style={{ position:"absolute", right:22, top:"calc(50% + 7px)", transform:"translateY(-50%)", background:`linear-gradient(135deg,${T.gn},#5ac800)`, border:"none", borderRadius:10, padding:"8px 12px", fontWeight:900, fontSize:13, color:"#000", cursor:"pointer", display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap", opacity:fetching ? 0.7 : 1 }}>
-                  {fetching ? 'Loading…' : 'Go'} →
-                </button>
-              )}
-            </form>
-            {heroError && (
-              <div style={{ marginTop:14, fontSize:13, color:T.red, fontWeight:600, lineHeight:1.55, maxWidth:520, marginLeft:"auto", marginRight:"auto" }}>
-                {heroError}
+      {/* HERO — split layout + Spotify search / link (Daily Playlists–style) */}
+      <section
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '96px 0 72px',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(135deg, #1e0b3d 0%, #4c1d95 32%, #c2410c 72%, #f97316 100%)',
+            opacity: 1,
+          }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: T.bg, opacity: 0.78 }} />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px)',
+            backgroundSize: '48px 48px',
+            pointerEvents: 'none',
+          }}
+        />
+        <div className="se-shell" style={{ position: 'relative', width: '100%', maxWidth: 1180, margin: '0 auto' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+              gap: 40,
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ textAlign: 'left' }}>
+              <div
+                className="fu1"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '7px 18px 7px 9px',
+                  borderRadius: 30,
+                  background: 'rgba(255,255,255,.08)',
+                  border: '1px solid rgba(255,255,255,.14)',
+                  marginBottom: 20,
+                }}
+              >
+                <span
+                  style={{
+                    background: `linear-gradient(135deg,${T.gn},#5ac800)`,
+                    color: '#000',
+                    fontWeight: 900,
+                    fontSize: 9.5,
+                    padding: '3px 9px',
+                    borderRadius: 20,
+                    letterSpacing: '.05em',
+                  }}
+                >
+                  LIVE
+                </span>
+                <Dot size={5} pulse />
+                <span style={{ fontSize: 13, color: T.g100, fontWeight: 500 }}>3,200+ verified Spotify curators</span>
               </div>
-            )}
-            {heroSuccess && !heroError && !heroPreview && (
-              <div style={{ marginTop:14, fontSize:13, color:T.gn, fontWeight:700 }}>
-                {heroSuccess}
+              <h1
+                className="fu2"
+                style={{
+                  fontSize: 'clamp(38px, 5.5vw, 72px)',
+                  fontWeight: 900,
+                  lineHeight: 1.05,
+                  letterSpacing: '-.04em',
+                  marginBottom: 18,
+                  maxWidth: 560,
+                  textShadow: '0 20px 60px rgba(0,0,0,.5)',
+                }}
+              >
+                Connect. Submit.
+                <br />
+                <span style={{ color: T.gn, animation: 'glow 3.5s ease-in-out infinite' }}>Grow on playlists.</span>
+              </h1>
+              <p
+                className="fu3"
+                style={{
+                  fontSize: 'clamp(15px, 2vw, 18px)',
+                  color: T.g200,
+                  lineHeight: 1.75,
+                  marginBottom: 28,
+                  maxWidth: 520,
+                }}
+              >
+                Search by song or artist, paste a Spotify link, then save your track and launch Playlist Push — same flow as the pros use.
+              </p>
+              <HeroSpotifySearch setPage={setPage} isLoggedIn={isLoggedIn} />
+              <div
+                className="fu5"
+                style={{ display: 'flex', gap: 9, justifyContent: 'flex-start', flexWrap: 'wrap', rowGap: 10, marginTop: 22 }}
+              >
+                {[
+                  { i: '✓', t: 'Verified curators' },
+                  { i: '🎯', t: 'Multi-select campaign' },
+                  { i: '🔒', t: 'Credit refund guarantee' },
+                  { i: '⚡', t: '18h avg response' },
+                ].map((t) => (
+                  <div
+                    key={t.t}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '5px 11px',
+                      borderRadius: 20,
+                      background: 'rgba(255,255,255,.06)',
+                      border: '1px solid rgba(255,255,255,.1)',
+                      fontSize: 12.5,
+                      color: T.g100,
+                      fontWeight: 500,
+                    }}
+                  >
+                    <span style={{ fontSize: 11 }}>{t.i}</span>
+                    {t.t}
+                  </div>
+                ))}
               </div>
-            )}
-            {heroPreview && !heroError && (
-              <div style={{
-                marginTop:18,
-                display:"flex",
-                alignItems:"center",
-                gap:14,
-                textAlign:"left",
-                padding:"14px 16px",
-                borderRadius:14,
-                background:"linear-gradient(145deg,rgba(127,255,0,.08),rgba(16,16,19,.95))",
-                border:`1px solid ${T.gnB}`,
-                maxWidth:520,
-                marginLeft:"auto",
-                marginRight:"auto",
-              }}>
-                {heroPreview.artworkUrl ? (
-                  <img src={heroPreview.artworkUrl} alt="" width={64} height={64} style={{ borderRadius:10, objectFit:"cover", flexShrink:0, boxShadow:"0 8px 24px rgba(0,0,0,.5)" }} />
-                ) : (
-                  <div style={{ width:64, height:64, borderRadius:10, background:"rgba(255,255,255,.06)", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>🎵</div>
-                )}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, fontWeight:800, color:T.gn, letterSpacing:".06em", textTransform:"uppercase", marginBottom:4 }}>Track loaded</div>
-                  <div style={{ fontSize:15, fontWeight:800, color:T.w, lineHeight:1.25, marginBottom:2 }}>{heroPreview.title}</div>
-                  {heroPreview.artist ? <div style={{ fontSize:13, color:T.g200 }}>{heroPreview.artist}</div> : null}
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+                maxWidth: 400,
+                width: '100%',
+                margin: '0 auto',
+              }}
+            >
+              {[
+                'linear-gradient(145deg,#312e81,#1e1b4b)',
+                'linear-gradient(145deg,#9a3412,#7c2d12)',
+                'linear-gradient(145deg,#14532d,#052e16)',
+                'linear-gradient(145deg,#831843,#4c0519)',
+              ].map((bg, i) => (
+                <div
+                  key={i}
+                  style={{
+                    aspectRatio: '1',
+                    borderRadius: 18,
+                    background: bg,
+                    border: '1px solid rgba(255,255,255,.12)',
+                    boxShadow: '0 24px 50px rgba(0,0,0,.35)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,.15), transparent 55%)',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 14,
+                      left: 14,
+                      right: 14,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: 'rgba(255,255,255,.75)',
+                      letterSpacing: '.08em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {['Studio', 'Stage', 'Release', 'Crowd'][i]}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-          <div className="fu5" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap", marginBottom:32, width:"100%", maxWidth:480 }}>
-            {heroPreview ? (
-              <button type="button" className="bp" onClick={proceedAfterHero} style={{ flex:1, padding:"14px 22px", fontSize:15.5, minWidth:160 }}>
-                Continue{isLoggedIn ? ' to dashboard' : ' to sign in'} <span className="arr">→</span>
-              </button>
-            ) : (
-              <button type="button" className="bp" onClick={() => { if (isUrl) void continueFromHero(); else setPage('get-started') }} style={{ flex:1, padding:"14px 22px", fontSize:15.5, minWidth:130 }}>
-                {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
-              </button>
-            )}
-            <button type="button" className="bs" onClick={goPricingPage} style={{ flex:1, padding:"14px 22px", fontSize:15.5, minWidth:110 }}>Pricing</button>
-          </div>
-          <div className="fu5" style={{ display:"flex", gap:9, justifyContent:"center", flexWrap:"wrap", rowGap:10 }}>
-            {[{i:"✓",t:"Verified curators"},{i:"🎯",t:"Multi-select campaign"},{i:"🔒",t:"Credit refund guarantee"},{i:"⚡",t:"18h avg response"}].map(t => (
-              <div key={t.t} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 11px", borderRadius:20, background:"rgba(255,255,255,.04)", border:`1px solid ${T.b0}`, fontSize:12.5, color:T.g100, fontWeight:500 }}>
-                <span style={{ fontSize:11 }}>{t.i}</span>{t.t}
-              </div>
-            ))}
-          </div>
-        </div>
         </div>
       </section>
 

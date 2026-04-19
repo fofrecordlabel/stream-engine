@@ -11,6 +11,55 @@ const TRACK_URI_RE = /^spotify:track:([A-Za-z0-9]+)$/i
 const PLAYLIST_RE = /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?playlist\/([A-Za-z0-9]+)/i
 const PLAYLIST_URI_RE = /^spotify:playlist:([A-Za-z0-9]+)$/i
 
+const SPOTIFY_OEMBED = 'https://open.spotify.com/oembed'
+
+/** Browser-only fallback: Spotify oEmbed allows `Access-Control-Allow-Origin: *` (works when your API is down). */
+async function fetchTrackOEmbedInBrowser(trackPageUrl) {
+  if (typeof window === 'undefined') return null
+  const clean = canonicalSpotifyTrackUrl(trackPageUrl) || String(trackPageUrl).trim()
+  try {
+    const r = await fetch(`${SPOTIFY_OEMBED}?url=${encodeURIComponent(clean)}&format=json`)
+    if (!r.ok) return null
+    const d = await r.json().catch(() => null)
+    if (!d) return null
+    const id = extractSpotifyId(trackPageUrl)
+    return {
+      id: id || null,
+      title: d.title || '',
+      artist: d.author_name || '',
+      artworkUrl: d.thumbnail_url || null,
+      spotifyUrl: clean,
+      previewUrl: null,
+      duration: null,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function fetchPlaylistOEmbedInBrowser(playlistPageUrl) {
+  if (typeof window === 'undefined') return null
+  const clean = canonicalSpotifyPlaylistUrl(playlistPageUrl) || String(playlistPageUrl).trim()
+  try {
+    const r = await fetch(`${SPOTIFY_OEMBED}?url=${encodeURIComponent(clean)}&format=json`)
+    if (!r.ok) return null
+    const d = await r.json().catch(() => null)
+    if (!d) return null
+    const id = extractPlaylistId(playlistPageUrl)
+    return {
+      id: id || null,
+      name: d.title || '',
+      owner: d.author_name || null,
+      artworkUrl: d.thumbnail_url || null,
+      spotifyUrl: clean,
+      followers: null,
+      trackCount: null,
+    }
+  } catch {
+    return null
+  }
+}
+
 export function extractSpotifyId(url) {
   const s = String(url || '').trim()
   const uri = s.match(TRACK_URI_RE)
@@ -59,25 +108,59 @@ export function trackUri(url) {
 export async function fetchSpotifyTrack(url) {
   if (!isSpotifyTrackUrl(url)) return null
   const apiUrl = canonicalSpotifyTrackUrl(url) || String(url).trim()
+
+  /** Spotify oEmbed is CORS-open — load first so pasted links work even when your API is unreachable. */
+  let oEmbedTrack = null
+  try {
+    const o = await fetchTrackOEmbedInBrowser(url)
+    if (o && (o.title || o.artworkUrl)) oEmbedTrack = o
+  } catch {
+    /* ignore */
+  }
+
   try {
     const res = await apiFetch(`/api/spotify/track?url=${encodeURIComponent(apiUrl)}`)
     const d = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      throw new Error(formatTrackMetadataError(res.status, d?.error))
+    if (res.ok && d?.ok) {
+      return {
+        id: d.id || extractSpotifyId(url),
+        title: d.title || oEmbedTrack?.title || '',
+        artist: d.artist || oEmbedTrack?.artist || '',
+        artworkUrl: d.artworkUrl || oEmbedTrack?.artworkUrl || null,
+        spotifyUrl: d.spotifyUrl || apiUrl,
+        previewUrl: d.previewUrl || null,
+        duration: d.durationMs ?? d.duration ?? null,
+      }
     }
-    if (!d?.ok) return null
+  } catch {
+    /* network — fall through to oEmbed */
+  }
+
+  if (oEmbedTrack) return oEmbedTrack
+  throw new Error(
+    'Could not load this Spotify track. Check the link, try again, or use search above and pick a result.',
+  )
+}
+
+/**
+ * Live track search (artist / song name). Requires API server with Spotify client credentials.
+ * @returns {Promise<{ tracks: Array<{id,title,artist,artworkUrl,spotifyUrl,previewUrl,durationMs}>, searchConfigured: boolean, hint?: string }>}
+ */
+export async function searchSpotifyTracks(query, limit = 10) {
+  const q = String(query || '').trim()
+  if (q.length < 2) return { tracks: [], searchConfigured: true }
+  if (isSpotifyTrackUrl(q)) return { tracks: [], searchConfigured: true }
+  try {
+    const res = await apiFetch(`/api/spotify/search?q=${encodeURIComponent(q)}&limit=${limit}`)
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok || !d?.ok) return { tracks: [], searchConfigured: false }
     return {
-      id: d.id || extractSpotifyId(url),
-      title: d.title || '',
-      artist: d.artist || '',
-      artworkUrl: d.artworkUrl || null,
-      spotifyUrl: d.spotifyUrl || apiUrl,
-      previewUrl: d.previewUrl || null,
-      duration: d.durationMs ?? d.duration ?? null,
+      tracks: Array.isArray(d.tracks) ? d.tracks : [],
+      searchConfigured: d.searchConfigured !== false,
+      hint: d.hint,
     }
-  } catch (err) {
-    console.warn('[Spotify] track metadata failed:', err.message)
-    throw err
+  } catch {
+    return { tracks: [], searchConfigured: false }
   }
 }
 
@@ -87,13 +170,23 @@ export async function fetchSpotifyTrack(url) {
 export async function fetchSpotifyPlaylist(url) {
   if (!isSpotifyPlaylistUrl(url)) return null
   const apiUrl = canonicalSpotifyPlaylistUrl(url) || String(url).trim()
+  const fromOEmbed = async () => {
+    const o = await fetchPlaylistOEmbedInBrowser(url)
+    return o && (o.name || o.artworkUrl) ? o : null
+  }
   try {
     const res = await apiFetch(`/api/spotify/playlist?url=${encodeURIComponent(apiUrl)}`)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
+      const o = await fromOEmbed()
+      if (o) return o
       throw new Error(formatTrackMetadataError(res.status, d?.error))
     }
-    if (!d?.ok) return null
+    if (!d?.ok) {
+      const o = await fromOEmbed()
+      if (o) return o
+      return null
+    }
     return {
       id: d.id || extractPlaylistId(url),
       name: d.name || '',
@@ -104,6 +197,8 @@ export async function fetchSpotifyPlaylist(url) {
       trackCount: d.trackCount != null ? d.trackCount : null,
     }
   } catch (err) {
+    const o = await fromOEmbed()
+    if (o) return o
     console.warn('[Spotify] playlist metadata failed:', err.message)
     throw err
   }
