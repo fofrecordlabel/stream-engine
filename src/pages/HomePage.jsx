@@ -1,32 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { BrandMark } from '../components/common/Logo.jsx'
-import { Dot, SectionLabel, VerifiedMark, SpotifySearchBar, CreditPill } from '../components/common/Atoms.jsx'
-import ExclusiveLaneOffer from '../components/home/ExclusiveLaneOffer.jsx'
+import { Dot, SectionLabel, VerifiedMark, CreditPill } from '../components/common/Atoms.jsx'
+import HeroSpotifySearch from '../components/home/HeroSpotifySearch.jsx'
 import { GENRES, FAQS_DATA } from '../data/index.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useToast } from '../context/ToastContext.jsx'
-import { fetchSpotifyTrack, isSpotifyTrackUrl, accentFromGenre } from '../lib/spotify.js'
-import { spotifyMetadataUnavailableMessage } from '../lib/apiClient.js'
-import { setPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
 
 export default function HomePage({ setPage }) {
   const { isLoggedIn } = useAuth()
-  const loggedInRef = useRef(isLoggedIn)
-  useEffect(() => {
-    loggedInRef.current = isLoggedIn
-  }, [isLoggedIn])
-  const toast = useToast()
   const [scrolled, setScrolled] = useState(false)
-  const [query, setQuery] = useState('')
-  const [focused, setFocused] = useState(false)
   const [genre, setGenre] = useState('All')
   const [openFaq, setOpenFaq] = useState(null)
-  const [fetching, setFetching] = useState(false)
-  const [heroError, setHeroError] = useState('')
-  const [heroSuccess, setHeroSuccess] = useState('')
-  const [heroPreview, setHeroPreview] = useState(null)
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60)
@@ -41,66 +26,7 @@ export default function HomePage({ setPage }) {
     else setPage('get-started')
   }
 
-  const isUrl = isSpotifyTrackUrl(query.trim())
   const displayCurators = []
-
-  const proceedAfterHero = useCallback(() => {
-    setHeroPreview(null)
-    setHeroSuccess('')
-    if (loggedInRef.current) setPage('artist')
-    else setPage('auth')
-  }, [setPage])
-
-  const continueFromHero = useCallback(async () => {
-    const spotifyUrl = query.trim()
-    setHeroError('')
-    setHeroSuccess('')
-    setHeroPreview(null)
-
-    if (!isSpotifyTrackUrl(spotifyUrl)) {
-      setHeroError('Paste a valid Spotify track link to continue.')
-      return
-    }
-
-    setFetching(true)
-    try {
-      const track = await fetchSpotifyTrack(spotifyUrl)
-      if (!track) {
-        setHeroError(spotifyMetadataUnavailableMessage())
-        return
-      }
-
-      const song = normalizePendingSong({
-        ...track,
-        spotifyUrl: track.spotifyUrl || spotifyUrl,
-        trackId: track.id,
-        spotifyId: track.id,
-        genre: '',
-        ac: accentFromGenre(''),
-      })
-
-      setPendingSubmission({
-        source: 'home-hero',
-        intent: 'playlist_push',
-        resumeAfterAuth: true,
-        status: 'metadata-ready',
-        song,
-      })
-
-      const artistBit = track.artist ? ` · ${track.artist}` : ''
-      setHeroSuccess(`Loaded “${track.title}”${artistBit}.`)
-      setHeroPreview({
-        title: track.title || 'Track',
-        artist: track.artist || '',
-        artworkUrl: track.artworkUrl || null,
-      })
-      toast.success(`${track.title || 'Track'} is ready for Playlist Push`, 'Track loaded')
-    } catch (e) {
-      setHeroError(e?.message || 'Could not fetch Spotify metadata.')
-    } finally {
-      setFetching(false)
-    }
-  }, [query, toast])
 
   return (
     <div style={{ background: T.bg, color: T.w, minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
@@ -126,116 +52,10 @@ export default function HomePage({ setPage }) {
               <span style={{ color: T.gn, animation: 'glow 3.5s ease-in-out infinite' }}>playlists.</span>
             </h1>
             <p className="fu3" style={{ fontSize: 'clamp(15px,2.1vw,19px)', color: T.g200, lineHeight: 1.82, marginBottom: 36, maxWidth: 540, width: '100%' }}>
-              Paste your Spotify track once, save it to your account, and launch one Playlist Push campaign. Credit packs plus optional Pro subscription. Transparent. Fast.
+              Search by song or artist, paste a Spotify link, then save your track and launch Playlist Push. Credit packs plus optional Pro subscription. Transparent. Fast.
             </p>
             <div className="fu4" style={{ width: '100%', maxWidth: 600, marginBottom: 22 }}>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  void continueFromHero()
-                }}
-                style={{
-                  position: 'relative',
-                  padding: 14,
-                  borderRadius: 18,
-                  background: 'linear-gradient(145deg,rgba(16,16,19,.92),rgba(8,8,10,.75))',
-                  border: `1px solid ${focused ? T.gnB : 'rgba(255,255,255,.08)'}`,
-                  boxShadow: focused ? `0 0 0 1px ${T.gnB}, 0 20px 60px rgba(0,0,0,.55)` : '0 20px 60px rgba(0,0,0,.45)',
-                  transition: 'border-color .2s, box-shadow .2s',
-                }}
-              >
-                <SpotifySearchBar
-                  value={query}
-                  onChange={(v) => {
-                    setQuery(v)
-                    setHeroSuccess('')
-                    setHeroError('')
-                    setHeroPreview(null)
-                  }}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setTimeout(() => setFocused(false), 150)}
-                  focused={focused}
-                  large
-                  placeholder="Paste a Spotify track link…"
-                />
-                {query ? (
-                  <button
-                    type="submit"
-                    disabled={fetching}
-                    style={{
-                      position: 'absolute',
-                      right: 22,
-                      top: 'calc(50% + 7px)',
-                      transform: 'translateY(-50%)',
-                      background: `linear-gradient(135deg,${T.gn},#5ac800)`,
-                      border: 'none',
-                      borderRadius: 10,
-                      padding: '8px 12px',
-                      fontWeight: 900,
-                      fontSize: 13,
-                      color: '#000',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      whiteSpace: 'nowrap',
-                      opacity: fetching ? 0.7 : 1,
-                    }}
-                  >
-                    {fetching ? 'Loading…' : 'Go'} →
-                  </button>
-                ) : null}
-              </form>
-              {heroError ? (
-                <div style={{ marginTop: 14, fontSize: 13, color: T.red, fontWeight: 600, lineHeight: 1.55, maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>{heroError}</div>
-              ) : null}
-              {heroSuccess && !heroError && !heroPreview ? (
-                <div style={{ marginTop: 14, fontSize: 13, color: T.gn, fontWeight: 700 }}>{heroSuccess}</div>
-              ) : null}
-              {heroPreview && !heroError ? (
-                <div
-                  style={{
-                    marginTop: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    textAlign: 'left',
-                    padding: '14px 16px',
-                    borderRadius: 14,
-                    background: 'linear-gradient(145deg,rgba(127,255,0,.08),rgba(16,16,19,.95))',
-                    border: `1px solid ${T.gnB}`,
-                    maxWidth: 520,
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                  }}
-                >
-                  {heroPreview.artworkUrl ? (
-                    <img src={heroPreview.artworkUrl} alt="" width={64} height={64} style={{ borderRadius: 10, objectFit: 'cover', flexShrink: 0, boxShadow: '0 8px 24px rgba(0,0,0,.5)' }} />
-                  ) : (
-                    <div style={{ width: 64, height: 64, borderRadius: 10, background: 'rgba(255,255,255,.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎵</div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: T.gn, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>Track loaded</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: T.w, lineHeight: 1.25, marginBottom: 2 }}>{heroPreview.title}</div>
-                    {heroPreview.artist ? <div style={{ fontSize: 13, color: T.g200 }}>{heroPreview.artist}</div> : null}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-            <div className="fu5" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32, width: '100%', maxWidth: 720 }}>
-              {heroPreview ? (
-                <button type="button" className="bp" onClick={proceedAfterHero} style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 160 }}>
-                  Continue{isLoggedIn ? ' to dashboard' : ' to sign in'} <span className="arr">→</span>
-                </button>
-              ) : (
-                <button type="button" className="bp" onClick={() => (isUrl ? void continueFromHero() : setPage('get-started'))} style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 130 }}>
-                  {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
-                </button>
-              )}
-              <ExclusiveLaneOffer setPage={setPage} />
-              <button type="button" className="bs" onClick={goPricingPage} style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 110 }}>
-                Pricing
-              </button>
+              <HeroSpotifySearch setPage={setPage} isLoggedIn={isLoggedIn} maxWidth={600} />
             </div>
             <div className="fu5" style={{ display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap', rowGap: 10 }}>
               {[
