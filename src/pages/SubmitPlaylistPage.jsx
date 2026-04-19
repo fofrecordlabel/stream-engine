@@ -4,7 +4,7 @@ import NavBar from '../components/layout/NavBar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { dbInsert, isDemo } from '../lib/supabase.js'
-import { fetchSpotifyPlaylist, isSpotifyPlaylistUrl } from '../lib/spotify.js'
+import { fetchSpotifyPlaylist, isSpotifyPlaylistUrl, canonicalSpotifyPlaylistUrl } from '../lib/spotify.js'
 
 const GENRE_OPTIONS = ['Hip-Hop', 'R&B', 'Electronic', 'Indie', 'Pop', 'Lo-Fi', 'Latin', 'Afrobeats', 'Soul', 'Country', 'Jazz']
 const ACCENT_MAP = {
@@ -93,8 +93,13 @@ export default function SubmitPlaylistPage({ setPage }) {
   }
 
   const handleSubmit = async () => {
+    const link = spotUrl.trim()
+    if (!isSpotifyPlaylistUrl(link)) {
+      toast.error('Paste a valid Spotify playlist link and tap Load playlist', 'Playlist link')
+      return
+    }
     if (!form.name.trim()) {
-      toast.error('Playlist name is required', 'Missing field')
+      toast.error('Load the playlist from Spotify first (or enter a name under More options)', 'Missing name')
       return
     }
     setSubmitting(true)
@@ -103,7 +108,7 @@ export default function SubmitPlaylistPage({ setPage }) {
         const row = {
           curator_id:      user?.id || null,
           name:            form.name.trim(),
-          spotify_url:     spotUrl.trim() || null,
+          spotify_url:     canonicalSpotifyPlaylistUrl(spotUrl.trim()) || spotUrl.trim() || null,
           genre:           form.genre,
           description:     form.description.trim() || null,
           submission_type: form.type,
@@ -148,7 +153,7 @@ export default function SubmitPlaylistPage({ setPage }) {
               <button onClick={() => setPage('curator')} className="bp" style={{ padding:'12px 28px', fontSize:14 }}>
                 Go to Dashboard <span className="arr">→</span>
               </button>
-              <button onClick={() => { setDone(false); setForm({ name:'', genre:'Hip-Hop', platform:'Spotify', description:'', type:'Free', followers:'' }); setSpotUrl(''); setImportedArt(null) }}
+              <button onClick={() => { setDone(false); setForm({ name:'', genre:'Hip-Hop', platform:'Spotify', description:'', type:'Free', followers:'' }); setSpotUrl(''); setImportedArt(null); setImportMsg(null) }}
                 className="bs" style={{ padding:'12px 24px', fontSize:14 }}>
                 Submit Another
               </button>
@@ -173,20 +178,19 @@ export default function SubmitPlaylistPage({ setPage }) {
                 Submit a Playlist
               </h1>
               <p style={{ fontSize:14, color:T.g300, lineHeight:1.6 }}>
-                List your playlist on StreamEngine so artists can submit tracks directly to you.
-                Earn credits for every track you review.
+                Paste your Spotify playlist link, pick the genre for your listing, then send it for review.
               </p>
             </div>
 
-            {/* Spotify import (optional) */}
+            {/* Spotify link — primary step */}
             <div style={{ background:'rgba(30,215,96,.04)', border:'1px solid rgba(30,215,96,.14)',
-                          borderRadius:14, padding:'16px 18px', marginBottom:28 }}>
+                          borderRadius:14, padding:'16px 18px', marginBottom:20 }}>
               <div style={{ fontSize:12, fontWeight:700, color:'#1ed760', marginBottom:10,
                             display:'flex', alignItems:'center', gap:6 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="#1ed760">
                   <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                 </svg>
-                Auto-fill from Spotify (optional)
+                1. Spotify playlist link
               </div>
               {importedArt && (
                 <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 13px',
@@ -203,7 +207,7 @@ export default function SubmitPlaylistPage({ setPage }) {
               <div style={{ display:'flex', gap:8 }}>
                 <input value={spotUrl} onChange={e => setSpotUrl(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleImport()}
-                  placeholder="open.spotify.com/playlist/…"
+                  placeholder="https://open.spotify.com/playlist/…"
                   style={{ flex:1, background:'rgba(255,255,255,.05)', border:`1px solid ${T.b1}`,
                            borderRadius:9, padding:'9px 13px', color:T.w, fontSize:13,
                            outline:'none', transition:'border .15s', fontFamily:'inherit' }}
@@ -219,7 +223,7 @@ export default function SubmitPlaylistPage({ setPage }) {
                         <circle cx="12" cy="12" r="10" stroke="rgba(30,215,96,.3)" strokeWidth="3"/>
                         <path d="M12 2a10 10 0 0 1 10 10" stroke="#1ed760" strokeWidth="3" strokeLinecap="round"/>
                       </svg>
-                    : 'Import'
+                    : 'Load playlist'
                   }
                 </button>
               </div>
@@ -229,91 +233,141 @@ export default function SubmitPlaylistPage({ setPage }) {
               )}
             </div>
 
-            {/* Form */}
-            <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-
-              <Field label="Playlist Name" required>
-                <input value={form.name} onChange={e => field('name', e.target.value)}
-                  placeholder="e.g. Late Night Vibes"
-                  style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = T.gnB}
-                  onBlur={e => e.target.style.borderColor = T.b1}
-                />
-              </Field>
-
-              <Field label="Follower Count" hint="(approximate)">
-                <input value={form.followers} onChange={e => field('followers', e.target.value)}
-                  placeholder="e.g. 8.2K or 8200"
-                  style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = T.gnB}
-                  onBlur={e => e.target.style.borderColor = T.b1}
-                />
-              </Field>
-
-              <Field label="Primary Genre">
-                <div className="scroll-x" style={{ display:'flex', gap:6 }}>
-                  {GENRE_OPTIONS.map(g => {
-                    const ac = ACCENT_MAP[g] || T.gn
-                    return (
-                      <button key={g} onClick={() => field('genre', g)}
-                        style={{ flexShrink:0, padding:'7px 14px', borderRadius:20, border:'none',
-                                 cursor:'pointer', fontSize:12, fontWeight:700, transition:'all .15s',
-                                 background: form.genre === g ? `${ac}20` : 'rgba(255,255,255,.05)',
-                                 color: form.genre === g ? ac : T.g300,
-                                 boxShadow: form.genre === g ? `0 0 0 1px ${ac}50` : 'none' }}>
-                        {g}
-                      </button>
-                    )
-                  })}
-                </div>
-              </Field>
-
-              <Field label="Platform">
-                <div style={{ display:'flex', gap:8 }}>
-                  {['Spotify','Apple Music','TikTok','YouTube','Instagram'].map(pl => (
-                    <button key={pl} onClick={() => field('platform', pl)}
-                      style={{ padding:'8px 14px', borderRadius:10, cursor:'pointer',
-                               fontSize:12.5, fontWeight:700, transition:'all .15s', flexShrink:0,
-                               background: form.platform === pl ? 'rgba(127,255,0,.1)' : 'rgba(255,255,255,.04)',
-                               border: form.platform === pl ? `1.5px solid ${T.gnB}` : `1px solid ${T.b0}`,
-                               color: form.platform === pl ? T.gn : T.g300 }}>
-                      {pl}
+            {/* 2. Genre — right after link */}
+            <Field label="2. Primary genre" required>
+              <div className="scroll-x" style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                {GENRE_OPTIONS.map((g) => {
+                  const ac = ACCENT_MAP[g] || T.gn
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => field('genre', g)}
+                      style={{
+                        flexShrink: 0,
+                        padding: '8px 16px',
+                        borderRadius: 20,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        transition: 'all .15s',
+                        background: form.genre === g ? `${ac}22` : 'rgba(255,255,255,.05)',
+                        color: form.genre === g ? ac : T.g300,
+                        boxShadow: form.genre === g ? `0 0 0 1.5px ${ac}55` : 'none',
+                      }}
+                    >
+                      {g}
                     </button>
-                  ))}
-                </div>
-              </Field>
+                  )
+                })}
+              </div>
+            </Field>
 
-              <Field label="Description" hint="(shown to artists)">
-                <textarea value={form.description} onChange={e => field('description', e.target.value)}
-                  placeholder="Tell artists what kind of tracks you're looking for…"
-                  rows={3}
-                  style={{ ...inputStyle, resize:'vertical', lineHeight:1.5 }}
-                  onFocus={e => e.target.style.borderColor = T.gnB}
-                  onBlur={e => e.target.style.borderColor = T.b1}
+            {/* 3. Name (filled from Spotify; editable) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 22 }}>
+              <Field label="3. Playlist name" required hint="(from Spotify after load — you can edit)">
+                <input
+                  value={form.name}
+                  onChange={(e) => field('name', e.target.value)}
+                  placeholder="Tap “Load playlist” above, or type a name"
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderColor = T.gnB)}
+                  onBlur={(e) => (e.target.style.borderColor = T.b1)}
                 />
               </Field>
 
-              <Field label="Submission Type">
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                  {SUB_TYPES.map(type => (
-                    <button key={type} onClick={() => field('type', type)}
-                      style={{ flex:1, minWidth:100, padding:'11px 12px', borderRadius:10, cursor:'pointer',
-                               fontSize:13, fontWeight:700, transition:'all .15s',
-                               background: form.type === type ? 'rgba(127,255,0,.1)' : 'rgba(255,255,255,.04)',
-                               border: form.type === type ? `1.5px solid ${T.gnB}` : `1px solid ${T.b0}`,
-                               color: form.type === type ? T.gn : T.g200 }}>
-                      {type === 'Free' ? '🆓' : type === 'Paid' ? '💰' : '🔒'} {type}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ marginTop:8, fontSize:12, color:T.g300 }}>{TYPE_DESCS[form.type]}</div>
-              </Field>
+              <details style={{ border: `1px solid ${T.b0}`, borderRadius: 12, padding: '12px 14px', background: 'rgba(255,255,255,.02)' }}>
+                <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, color: T.g200, userSelect: 'none' }}>
+                  More options (optional)
+                </summary>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 16 }}>
+                  <Field label="Follower count" hint="(approximate)">
+                    <input
+                      value={form.followers}
+                      onChange={(e) => field('followers', e.target.value)}
+                      placeholder="e.g. 8.2K or 8200"
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = T.gnB)}
+                      onBlur={(e) => (e.target.style.borderColor = T.b1)}
+                    />
+                  </Field>
 
+                  <Field label="Platform">
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {['Spotify', 'Apple Music', 'TikTok', 'YouTube', 'Instagram'].map((pl) => (
+                        <button
+                          key={pl}
+                          type="button"
+                          onClick={() => field('platform', pl)}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            transition: 'all .15s',
+                            flexShrink: 0,
+                            background: form.platform === pl ? 'rgba(127,255,0,.1)' : 'rgba(255,255,255,.04)',
+                            border: form.platform === pl ? `1.5px solid ${T.gnB}` : `1px solid ${T.b0}`,
+                            color: form.platform === pl ? T.gn : T.g300,
+                          }}
+                        >
+                          {pl}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="Description" hint="(shown to artists)">
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => field('description', e.target.value)}
+                      placeholder="Tell artists what kind of tracks you're looking for…"
+                      rows={3}
+                      style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+                      onFocus={(e) => (e.target.style.borderColor = T.gnB)}
+                      onBlur={(e) => (e.target.style.borderColor = T.b1)}
+                    />
+                  </Field>
+
+                  <Field label="Submission type">
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {SUB_TYPES.map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => field('type', type)}
+                          style={{
+                            flex: 1,
+                            minWidth: 100,
+                            padding: '11px 12px',
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            transition: 'all .15s',
+                            background: form.type === type ? 'rgba(127,255,0,.1)' : 'rgba(255,255,255,.04)',
+                            border: form.type === type ? `1.5px solid ${T.gnB}` : `1px solid ${T.b0}`,
+                            color: form.type === type ? T.gn : T.g200,
+                          }}
+                        >
+                          {type === 'Free' ? '🆓' : type === 'Paid' ? '💰' : '🔒'} {type}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: T.g300 }}>{TYPE_DESCS[form.type]}</div>
+                  </Field>
+                </div>
+              </details>
             </div>
 
             {/* Submit */}
             <div style={{ marginTop:32, paddingTop:24, borderTop:`1px solid ${T.b0}` }}>
-              <button className="bp" onClick={handleSubmit} disabled={submitting || !form.name.trim()}
+              <button
+                className="bp"
+                onClick={handleSubmit}
+                disabled={submitting || !form.name.trim() || !isSpotifyPlaylistUrl(spotUrl.trim())}
                 style={{ padding:'14px 36px', fontSize:15 }}>
                 {submitting
                   ? <span style={{ display:'flex', alignItems:'center', gap:8 }}>

@@ -191,34 +191,33 @@ export async function fetchSpotifyPlaylist(url) {
   if (!isSpotifyPlaylistUrl(url)) return null
   const apiUrl = canonicalSpotifyPlaylistUrl(url) || String(url).trim()
   const fromOEmbed = async () => {
-    const o = await fetchPlaylistOEmbedInBrowser(url)
+    const o = await fetchPlaylistOEmbedInBrowser(apiUrl)
     return o && (o.name || o.artworkUrl) ? o : null
   }
+  /** oEmbed works from the browser without API credentials — try first so paste/import works when Render has no client secret. */
+  const oEmbedFirst = await fromOEmbed()
   try {
     const res = await apiFetch(`/api/spotify/playlist?url=${encodeURIComponent(apiUrl)}`)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const o = await fromOEmbed()
-      if (o) return o
+      if (oEmbedFirst) return oEmbedFirst
       throw new Error(formatTrackMetadataError(res.status, d?.error))
     }
     if (!d?.ok) {
-      const o = await fromOEmbed()
-      if (o) return o
+      if (oEmbedFirst) return oEmbedFirst
       return null
     }
     return {
-      id: d.id || extractPlaylistId(url),
-      name: d.name || '',
-      owner: d.owner || null,
-      artworkUrl: d.artworkUrl || null,
+      id: d.id || extractPlaylistId(apiUrl),
+      name: d.name || oEmbedFirst?.name || '',
+      owner: d.owner ?? oEmbedFirst?.owner ?? null,
+      artworkUrl: d.artworkUrl || oEmbedFirst?.artworkUrl || null,
       spotifyUrl: d.spotifyUrl || apiUrl,
       followers: d.followers != null ? d.followers : null,
       trackCount: d.trackCount != null ? d.trackCount : null,
     }
   } catch (err) {
-    const o = await fromOEmbed()
-    if (o) return o
+    if (oEmbedFirst) return oEmbedFirst
     console.warn('[Spotify] playlist metadata failed:', err.message)
     throw err
   }

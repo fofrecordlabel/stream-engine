@@ -378,28 +378,32 @@ app.get('/api/spotify/health', (_req, res) => {
 
 app.get('/api/spotify/playlist', async (req, res) => {
   try {
-    const url = String(req.query?.url || '').trim()
-    if (!url.includes('open.spotify.com/playlist/')) return res.status(400).json({ ok: false, error: 'Invalid playlist url' })
-    const idMatch = url.match(/open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/)
+    const raw = String(req.query?.url || '').trim()
+    let url = normalizeSpotifyPlaylistUrl(raw)
+    if (!/^https?:\/\//i.test(url)) url = `https://${url}`
+    url = normalizeSpotifyPlaylistUrl(url)
+    const idMatch = String(url).match(/open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/i)
     const playlistId = idMatch?.[1] || null
-    if (playlistId) {
-      const api = await fetchPlaylistFromWebApi(playlistId)
-      if (api) {
-        return res.json({
-          ok: true,
-          type: 'playlist',
-          id: api.id,
-          name: api.name,
-          owner: api.owner,
-          artworkUrl: api.artworkUrl,
-          spotifyUrl: api.spotifyUrl || url,
-          followers: api.followers,
-          trackCount: api.trackCount,
-          source: 'web_api',
-        })
-      }
+    if (!playlistId) {
+      return res.status(400).json({ ok: false, error: 'Invalid playlist url (use open.spotify.com/playlist/… or spotify:playlist:…)' })
     }
-    const d = await fetchSpotifyOEmbed(url)
+    const canonical = `https://open.spotify.com/playlist/${playlistId}`
+    const api = await fetchPlaylistFromWebApi(playlistId)
+    if (api) {
+      return res.json({
+        ok: true,
+        type: 'playlist',
+        id: api.id,
+        name: api.name,
+        owner: api.owner,
+        artworkUrl: api.artworkUrl,
+        spotifyUrl: api.spotifyUrl || canonical,
+        followers: api.followers,
+        trackCount: api.trackCount,
+        source: 'web_api',
+      })
+    }
+    const d = await fetchSpotifyOEmbed(canonical)
     return res.json({
       ok: true,
       type: 'playlist',
@@ -407,7 +411,7 @@ app.get('/api/spotify/playlist', async (req, res) => {
       name: d.title || '',
       owner: d.author_name || null,
       artworkUrl: d.thumbnail_url || null,
-      spotifyUrl: url,
+      spotifyUrl: canonical,
       followers: null,
       trackCount: null,
       source: 'oembed',
