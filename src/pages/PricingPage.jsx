@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
+import { loadExclusiveQuoteIntent, clearExclusiveQuoteIntent } from '../lib/exclusiveSubmissionPricing.js'
 
 const PLANS = [
   {
@@ -53,6 +54,7 @@ const PLANS = [
 export default function PricingPage({ setPage }) {
   const [annual,   setAnnual]   = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [exclusiveIntent, setExclusiveIntent] = useState(null)
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10)
@@ -60,12 +62,58 @@ export default function PricingPage({ setPage }) {
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
+  useEffect(() => {
+    setExclusiveIntent(loadExclusiveQuoteIntent())
+  }, [])
+
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.w }}>
       <NavBar setPage={setPage} scrolled={scrolled} />
 
+      {exclusiveIntent?.kind === 'exclusive_direct' ? (
+        <div className="se-shell" style={{ paddingTop: 76, paddingBottom: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              flexWrap: 'wrap',
+              padding: '14px 18px',
+              borderRadius: 14,
+              background: 'rgba(255,255,255,.06)',
+              border: '1px solid rgba(255,255,255,.12)',
+            }}
+          >
+            <div style={{ fontSize: 14, color: T.g100, lineHeight: 1.5 }}>
+              <strong style={{ color: T.w }}>Exclusive direct submissions:</strong>{' '}
+              {exclusiveIntent.qty} slot{exclusiveIntent.qty === 1 ? '' : 's'} ·{' '}
+              <span className="mono" style={{ color: T.gn }}>${Number(exclusiveIntent.youPayUsd).toFixed(2)}</span>
+              {exclusiveIntent.savedUsd > 0 ? (
+                <span style={{ color: T.g300 }}>
+                  {' '}
+                  (saved ${Number(exclusiveIntent.savedUsd).toFixed(2)} vs list)
+                </span>
+              ) : null}
+              . Complete payment with the team from your signed-in billing area when checkout is wired for this SKU.
+            </div>
+            <button
+              type="button"
+              className="bt"
+              onClick={() => {
+                clearExclusiveQuoteIntent()
+                setExclusiveIntent(null)
+              }}
+              style={{ flexShrink: 0, fontSize: 12.5 }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Hero */}
-      <div style={{ textAlign: 'center', padding: '110px 24px 56px' }}>
+      <div style={{ textAlign: 'center', padding: exclusiveIntent?.kind === 'exclusive_direct' ? '56px 24px 56px' : '110px 24px 56px' }}>
         <div style={{ display: 'inline-block', background: T.gnGl, border: `1px solid ${T.gnB}`,
                       borderRadius: 999, padding: '4px 16px', fontSize: 11.5, fontWeight: 800,
                       color: T.gn, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 22 }}>
