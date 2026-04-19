@@ -96,9 +96,10 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
     try {
       const { tracks, searchConfigured, hint } = await searchSpotifyTracks(q, 12)
       setResults(tracks)
-      if (!searchConfigured && hint) setSearchHint(hint)
-      else if (!searchConfigured) setSearchHint('Live search needs Spotify credentials on your API server.')
-      else setSearchHint('')
+      if (hint) setSearchHint(hint)
+      else if (!searchConfigured) {
+        setSearchHint('Live search needs SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET on your API server (e.g. Render → streamengine-api → Environment).')
+      } else setSearchHint('')
     } finally {
       setSearching(false)
     }
@@ -234,17 +235,19 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
   }
 
   return (
-    <div style={{ width: '100%', maxWidth, margin: '0 auto', position: 'relative' }}>
+    <div style={{ width: '100%', maxWidth, margin: '0 auto', position: 'relative', zIndex: 1, isolation: 'isolate' }}>
       <form
         onSubmit={onSubmit}
         style={{
           position: 'relative',
+          zIndex: 1,
           padding: 14,
           borderRadius: 18,
           background: 'linear-gradient(145deg,rgba(16,16,19,.92),rgba(8,8,10,.75))',
           border: `1px solid ${focused ? T.gnB : 'rgba(255,255,255,.08)'}`,
           boxShadow: focused ? `0 0 0 1px ${T.gnB}, 0 20px 60px rgba(0,0,0,.55)` : '0 20px 60px rgba(0,0,0,.45)',
           transition: 'border-color .2s, box-shadow .2s',
+          overflow: 'visible',
         }}
       >
         <div style={{ position: 'relative', width: '100%' }}>
@@ -365,15 +368,16 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
               left: 14,
               right: 14,
               top: 'calc(100% + 6px)',
-              zIndex: 50,
+              zIndex: 2000,
               borderRadius: 14,
               background: '#f4f4f7',
-              border: '1px solid rgba(0,0,0,.08)',
-              boxShadow: '0 24px 60px rgba(0,0,0,.45)',
+              border: '1px solid rgba(0,0,0,.12)',
+              boxShadow: '0 24px 60px rgba(0,0,0,.55)',
               maxHeight: typeof window !== 'undefined' ? Math.min(360, window.innerHeight * 0.42) : 360,
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              isolation: 'isolate',
             }}
           >
             <div

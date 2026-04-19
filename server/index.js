@@ -343,13 +343,23 @@ app.get('/api/spotify/search', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Enter at least 2 characters' })
     }
     const limit = Math.min(20, Math.max(1, parseInt(String(req.query?.limit || '10'), 10) || 10))
+    const id = String(getServerEnv('SPOTIFY_CLIENT_ID', 'VITE_SPOTIFY_CLIENT_ID') || '').trim()
+    const secret = String(getServerEnv('SPOTIFY_CLIENT_SECRET') || '').trim()
+    if (!id || !secret) {
+      return res.json({
+        ok: true,
+        tracks: [],
+        searchConfigured: false,
+        hint: 'Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the API server (Render → your web service → Environment). Redeploy after saving.',
+      })
+    }
     const tracks = await searchTracksFromWebApi(q, limit)
     if (tracks == null) {
       return res.json({
         ok: true,
         tracks: [],
         searchConfigured: false,
-        hint: 'Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET on the API server (Render) to enable live search.',
+        hint: 'Spotify client credentials failed (check SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET on Render and that this app is allowed in the Spotify Developer Dashboard).',
       })
     }
     return res.json({ ok: true, tracks, searchConfigured: true })

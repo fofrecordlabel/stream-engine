@@ -153,14 +153,34 @@ export async function searchSpotifyTracks(query, limit = 10) {
   try {
     const res = await apiFetch(`/api/spotify/search?q=${encodeURIComponent(q)}&limit=${limit}`)
     const d = await res.json().catch(() => ({}))
-    if (!res.ok || !d?.ok) return { tracks: [], searchConfigured: false }
+    if (!res.ok) {
+      return {
+        tracks: [],
+        searchConfigured: true,
+        hint:
+          res.status === 404
+            ? 'Search API not found. Confirm Netlify proxies /api to your Render service, then redeploy.'
+            : `Search could not complete (${res.status}). Paste a Spotify track link below, or try again.`,
+      }
+    }
+    if (!d?.ok) {
+      return {
+        tracks: [],
+        searchConfigured: false,
+        hint: typeof d?.error === 'string' ? d.error : undefined,
+      }
+    }
     return {
       tracks: Array.isArray(d.tracks) ? d.tracks : [],
       searchConfigured: d.searchConfigured !== false,
       hint: d.hint,
     }
   } catch {
-    return { tracks: [], searchConfigured: false }
+    return {
+      tracks: [],
+      searchConfigured: true,
+      hint: 'Could not reach the API. Check your connection, or paste a Spotify track link.',
+    }
   }
 }
 

@@ -33,7 +33,7 @@ export default function HomePage({ setPage }) {
       <NavBar setPage={setPage} scrolled={scrolled} />
 
       {/* HERO — centered layout (pre–split-screen) + Exclusive CTA */}
-      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '118px 0 88px', overflow: 'hidden' }}>
+      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '118px 0 88px' }}>
         <div style={{ position: 'absolute', top: '14%', left: '50%', transform: 'translateX(-50%)', width: 920, height: 620, background: 'radial-gradient(ellipse at center,rgba(127,255,0,.11) 0%,rgba(127,255,0,.04) 38%,transparent 68%)', pointerEvents: 'none', filter: 'blur(0px)' }} />
         <div style={{ position: 'absolute', top: '42%', left: '8%', width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle,rgba(99,102,241,.06) 0%,transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none', opacity: 0.85 }} />
@@ -54,10 +54,10 @@ export default function HomePage({ setPage }) {
             <p className="fu3" style={{ fontSize: 'clamp(15px,2.1vw,19px)', color: T.g200, lineHeight: 1.82, marginBottom: 36, maxWidth: 540, width: '100%' }}>
               Search by song or artist, paste a Spotify link, then save your track and launch Playlist Push. Credit packs plus optional Pro subscription. Transparent. Fast.
             </p>
-            <div className="fu4" style={{ width: '100%', maxWidth: 600, marginBottom: 22 }}>
+            <div className="fu4" style={{ width: '100%', maxWidth: 600, marginBottom: 22, position: 'relative', zIndex: 30, isolation: 'isolate' }}>
               <HeroSpotifySearch setPage={setPage} isLoggedIn={isLoggedIn} maxWidth={600} />
             </div>
-            <div className="fu5" style={{ display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap', rowGap: 10 }}>
+            <div className="fu5" style={{ position: 'relative', zIndex: 0, display: 'flex', gap: 9, justifyContent: 'center', flexWrap: 'wrap', rowGap: 10 }}>
               {[
                 { i: '✓', t: 'Verified curators' },
                 { i: '🎯', t: 'Multi-select campaign' },

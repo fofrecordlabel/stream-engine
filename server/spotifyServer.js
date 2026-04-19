@@ -9,8 +9,8 @@ const API_BASE = 'https://api.spotify.com/v1'
 let cached = { token: null, expiresAt: 0 }
 
 export async function getSpotifyAccessToken() {
-  const id = process.env.SPOTIFY_CLIENT_ID || process.env.VITE_SPOTIFY_CLIENT_ID
-  const secret = process.env.SPOTIFY_CLIENT_SECRET
+  const id = String(process.env.SPOTIFY_CLIENT_ID || process.env.VITE_SPOTIFY_CLIENT_ID || '').trim()
+  const secret = String(process.env.SPOTIFY_CLIENT_SECRET || '').trim()
   if (!id || !secret) return null
   if (cached.token && Date.now() < cached.expiresAt - 60_000) return cached.token
 
@@ -25,7 +25,8 @@ export async function getSpotifyAccessToken() {
     body,
   })
   if (!r.ok) {
-    console.warn('[Spotify] Client credentials failed:', r.status)
+    const errBody = await r.text().catch(() => '')
+    console.warn('[Spotify] Client credentials failed:', r.status, errBody.slice(0, 200))
     return null
   }
   const d = await r.json()
@@ -94,7 +95,11 @@ export async function searchTracksFromWebApi(q, limit = 10) {
     `${API_BASE}/search?type=track&q=${encodeURIComponent(String(q).trim())}&limit=${lim}`,
     { headers: { Authorization: `Bearer ${token}` } },
   )
-  if (!r.ok) return []
+  if (!r.ok) {
+    const errBody = await r.text().catch(() => '')
+    console.warn('[Spotify] Search request failed:', r.status, errBody.slice(0, 200))
+    return []
+  }
   const data = await r.json()
   const items = data?.tracks?.items || []
   return items.map((t) => {
