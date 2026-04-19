@@ -21,6 +21,11 @@ export default function HomePage({ setPage }) {
 
   const goPricingPage = () => setPage('subscriptions')
 
+  const startCampaign = () => {
+    if (isLoggedIn) setPage('artist')
+    else setPage('get-started')
+  }
+
   const displayCurators = []
 
   return (
@@ -269,7 +274,7 @@ export default function HomePage({ setPage }) {
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:12 }}>
             {displayCurators.map(c => (
-              <div key={c.id} onClick={continueFromHero} style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:14, padding:"16px 15px", cursor:"pointer", transition:"all .2s" }}
+              <div key={c.id} onClick={startCampaign} style={{ background:`linear-gradient(145deg,${T.card},#0d0d10)`, border:`1px solid ${T.b0}`, borderRadius:14, padding:"16px 15px", cursor:"pointer", transition:"all .2s" }}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=T.b1;e.currentTarget.style.transform="translateY(-2px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=T.b0;e.currentTarget.style.transform="none";}}>
                 <div style={{ display:"flex", alignItems:"center", gap:11, marginBottom:11 }}>
@@ -300,7 +305,7 @@ export default function HomePage({ setPage }) {
             </div>
           )}
           <div style={{ textAlign:"center", marginTop:24 }}>
-            <button className="bp" onClick={continueFromHero} style={{ padding:"13px 30px", fontSize:15 }}>Start Your Campaign <span className="arr">→</span></button>
+            <button className="bp" onClick={startCampaign} style={{ padding:"13px 30px", fontSize:15 }}>Start Your Campaign <span className="arr">→</span></button>
           </div>
         </div>
       </section>
@@ -366,7 +371,7 @@ export default function HomePage({ setPage }) {
           </h2>
           <p style={{ color:T.g200, fontSize:15.5, marginBottom:32, lineHeight:1.7 }}>Paste your track and submit to real curators in minutes.</p>
           <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap", maxWidth:360, margin:"0 auto" }}>
-            <button className="bp" onClick={continueFromHero} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:140 }}>Get Started Free <span className="arr">→</span></button>
+            <button className="bp" onClick={startCampaign} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:140 }}>Get Started Free <span className="arr">→</span></button>
             <button type="button" className="bs" onClick={goPricingPage} style={{ flex:1, padding:"15px 20px", fontSize:16, minWidth:110 }}>Pricing</button>
           </div>
           <div style={{ marginTop:16, fontSize:13, color:T.g400 }}>No subscription · Credits never expire · Free to browse</div>
