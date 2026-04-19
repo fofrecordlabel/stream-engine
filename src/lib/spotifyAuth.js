@@ -4,9 +4,9 @@
  * Required env var:
  *   VITE_SPOTIFY_CLIENT_ID — your Spotify app's client ID (safe to expose in browser)
  *
- * Required Redirect URIs (add in Spotify Developer Dashboard → your app → Settings):
- *   http://localhost:5173  (dev)
- *   https://your-domain.com  (prod)
+ * Required Redirect URIs (Spotify Dashboard → your app → Settings) — must match `window.location.origin` exactly (no /callback path):
+ *   http://localhost:5173
+ *   https://streamenginev1.netlify.app  (or your production origin)
  *
  * Scopes requested:
  *   playlist-modify-public     — add tracks to public playlists
