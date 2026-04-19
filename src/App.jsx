@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { GLOBAL_CSS } from './tokens.js'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ToastProvider } from './context/ToastContext.jsx'
@@ -61,12 +61,85 @@ const PAGES = {
 function LoadingScreen() {
   return (
     <div style={{ height:'100vh', background:'#050506', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ textAlign:'center' }}>
+      <div style={{ textAlign:'center', maxWidth: 320, padding: 20 }}>
         <div style={{ width:40, height:40, margin:'0 auto 16px', border:'3px solid rgba(127,255,0,.2)', borderTop:'3px solid #7fff00', borderRadius:'50%', animation:'spin .8s linear infinite' }} />
-        <div style={{ fontSize:13, color:'#606060', fontWeight:600 }}>Loading StreamEngine…</div>
+        <div style={{ fontSize:14, color:'#a3a3a3', fontWeight:600, marginBottom: 8 }}>Loading StreamEngine…</div>
+        <div style={{ fontSize:12, color:'#525252', lineHeight: 1.5 }}>
+          If this never finishes, check Netlify env vars (especially <span className="mono">VITE_SUPABASE_ANON_KEY</span>) and redeploy.
+        </div>
       </div>
     </div>
   )
+}
+
+/** Catches render errors so production never shows a silent black screen. */
+class RootErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { err: null }
+  }
+
+  static getDerivedStateFromError(err) {
+    return { err }
+  }
+
+  componentDidCatch(err, info) {
+    console.error('[StreamEngine] UI error:', err, info)
+  }
+
+  render() {
+    if (this.state.err) {
+      return (
+        <div
+          style={{
+            minHeight: '100vh',
+            background: '#0a0a0b',
+            color: '#fff',
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            fontFamily: 'system-ui, sans-serif',
+          }}
+        >
+          <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>Something broke on this page</h1>
+          <pre
+            style={{
+              fontSize: 12,
+              color: '#fca5a5',
+              maxWidth: 560,
+              overflow: 'auto',
+              textAlign: 'left',
+              marginBottom: 20,
+              padding: 14,
+              background: 'rgba(255,255,255,.06)',
+              borderRadius: 10,
+            }}
+          >
+            {String(this.state.err?.message || this.state.err)}
+          </pre>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '12px 22px',
+              borderRadius: 10,
+              border: 'none',
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: '#7fff00',
+              color: '#000',
+            }}
+          >
+            Reload
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 /* ── Inner app — consumes AuthContext ── */
@@ -223,12 +296,14 @@ export default function App() {
   }, [])
 
   return (
-    <LangProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <AppInner />
-        </ToastProvider>
-      </AuthProvider>
-    </LangProvider>
+    <RootErrorBoundary>
+      <LangProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AppInner />
+          </ToastProvider>
+        </AuthProvider>
+      </LangProvider>
+    </RootErrorBoundary>
   )
 }

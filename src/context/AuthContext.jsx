@@ -71,17 +71,50 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (isDemo) { setLoading(false); return }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) loadProfile(session.user).finally(() => setLoading(false))
-      else setLoading(false)
-    })
+    let cancelled = false
+    const finish = () => {
+      if (!cancelled) setLoading(false)
+    }
+
+    /** Never leave the app stuck on a black loading screen if Supabase/network fails. */
+    const failSafe = window.setTimeout(() => {
+      console.warn('[StreamEngine] Auth init took too long — continuing without session.')
+      finish()
+    }, 12_000)
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled) return
+        if (session?.user) {
+          void loadProfile(session.user)
+            .catch((e) => console.error('[StreamEngine] loadProfile failed:', e))
+            .finally(finish)
+        } else {
+          finish()
+        }
+      })
+      .catch((e) => {
+        console.error('[StreamEngine] getSession failed:', e)
+        finish()
+      })
+      .finally(() => window.clearTimeout(failSafe))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) loadProfile(session.user)
-      else { setUser(null); setRole(null); setCredits(0) }
+      if (session?.user) {
+        void loadProfile(session.user).catch((e) => console.error('[StreamEngine] loadProfile (auth change):', e))
+      } else {
+        setUser(null)
+        setRole(null)
+        setCredits(0)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      window.clearTimeout(failSafe)
+      subscription.unsubscribe()
+    }
   }, [loadProfile])
 
   /* ── Tab focus: refresh profile (credits) after Stripe checkout or long idle ── */
@@ -90,8 +123,8 @@ export function AuthProvider({ children }) {
     const onVis = () => {
       if (document.visibilityState !== 'visible') return
       supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) loadProfile(session.user)
-      })
+        if (session?.user) void loadProfile(session.user).catch((e) => console.error('[StreamEngine] loadProfile (visibility):', e))
+      }).catch((e) => console.error('[StreamEngine] getSession (visibility):', e))
     }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
