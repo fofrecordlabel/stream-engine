@@ -45,17 +45,21 @@ function collectApiUrls(path) {
     add(p)
   } else {
     add(p)
-    if (remote) add(apiUrl(p))
-  }
-  if (import.meta.env.DEV) {
-    add(`http://127.0.0.1:3333${p}`)
-    add(`http://localhost:3333${p}`)
-    if (typeof window !== 'undefined') {
-      const h = window.location.hostname
-      if (h && h !== 'localhost' && h !== '127.0.0.1') {
-        add(`http://${h}:3333${p}`)
+    /*
+     * Development: try same-origin (Vite proxy) and direct :3333 before VITE_API_ORIGIN.
+     * Otherwise a stale Render deploy can answer 404 first and mask a healthy local API.
+     */
+    if (import.meta.env.DEV) {
+      add(`http://127.0.0.1:3333${p}`)
+      add(`http://localhost:3333${p}`)
+      if (typeof window !== 'undefined') {
+        const h = window.location.hostname
+        if (h && h !== 'localhost' && h !== '127.0.0.1') {
+          add(`http://${h}:3333${p}`)
+        }
       }
     }
+    if (remote) add(apiUrl(p))
   }
   return urls
 }

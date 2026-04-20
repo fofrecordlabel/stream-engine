@@ -166,7 +166,9 @@ export async function searchSpotifyTracks(query, limit = 10) {
         hint:
           res.status === 404
             ? expressNoRoute
-              ? `API is up but no route for ${d.path}. Deploy the latest Render service from this repo.`
+              ? import.meta.env.DEV
+                ? `API is up but no route for ${d.path}. From the repo root run \`npm run dev\` (starts API + Vite), or redeploy Render with the latest \`server/index.js\`.`
+                : `API is up but no route for ${d.path}. Deploy the latest Render service from this repo.`
               : 'Search returned 404. Confirm VITE_API_ORIGIN on Netlify matches your Render API URL, redeploy, and check Render has SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET.'
             : `Search could not complete (${res.status}). Paste a Spotify track link below, or try again.`,
       }
