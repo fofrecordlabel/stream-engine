@@ -154,6 +154,7 @@ export async function searchSpotifyTracks(query, limit = 10) {
     const res = await apiFetch(`/api/spotify/search?q=${encodeURIComponent(q)}&limit=${limit}`)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
+      const renderNoServer = res.headers.get('x-render-routing') === 'no-server'
       const expressNoRoute =
         res.status === 404 &&
         d &&
@@ -165,11 +166,13 @@ export async function searchSpotifyTracks(query, limit = 10) {
         searchConfigured: true,
         hint:
           res.status === 404
-            ? expressNoRoute
-              ? import.meta.env.DEV
-                ? `API is up but no route for ${d.path}. From the repo root run \`npm run dev\` (starts API + Vite), or redeploy Render with the latest \`server/index.js\`.`
-                : `API is up but no route for ${d.path}. Deploy the latest Render service from this repo.`
-              : 'Search returned 404. Confirm VITE_API_ORIGIN on Netlify matches your Render API URL, redeploy, and check Render has SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET.'
+            ? renderNoServer
+              ? 'No API is deployed at this address (Render returned “no server”). In Render, create or resume the Web Service from this GitHub repo, copy its URL (https://….onrender.com), set it as VITE_API_ORIGIN on Netlify (Build + Run), then redeploy the Netlify site.'
+              : expressNoRoute
+                ? import.meta.env.DEV
+                  ? `API is up but no route for ${d.path}. From the repo root run \`npm run dev\` (starts API + Vite), or redeploy Render with the latest \`server/index.js\`.`
+                  : `API is up but no route for ${d.path}. Deploy the latest Render service from this repo.`
+                : 'Search returned 404. Open your VITE_API_ORIGIN in a browser — GET /health should return JSON. Fix the URL on Netlify if not, redeploy both sites, and on Render set SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET.'
             : `Search could not complete (${res.status}). Paste a Spotify track link below, or try again.`,
       }
     }

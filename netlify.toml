@@ -15,20 +15,13 @@
   VITE_SPOTIFY_CLIENT_ID = "a689918def2f448e9632819a8ec289cd"
   # Your Netlify site (Stripe success/cancel + OAuth redirect). Edit if the site name changes.
   VITE_APP_URL = "https://streamenginev1.netlify.app"
-  # Must match the URL of your deployed Express API (see render.yaml → service name).
-  VITE_API_ORIGIN = "https://streamengine-api.onrender.com"
+  # VITE_API_ORIGIN: set in Netlify → Site configuration → Environment variables (Build + Run).
+  # Must be your live Render web service URL, e.g. https://<service-name>.onrender.com (verify in a browser: GET /health returns JSON).
+  # public/_redirects /api proxy is generated at build from this value (see scripts/emit-netlify-redirects.mjs).
   # Supabase project (public ref — safe in repo). Anon key still required: set VITE_SUPABASE_ANON_KEY below or in Netlify UI.
   VITE_SUPABASE_URL = "https://rltejlyhvhlivskbezkx.supabase.co"
 
-# Proxy API to Render so the browser can use same-origin `/api/*` (fixes Spotify metadata + checkout on Netlify).
-# Must appear before the SPA catch-all. Change the host if your API service URL differs.
-[[redirects]]
-  from = "/api/*"
-  to = "https://streamengine-api.onrender.com/api/:splat"
-  status = 200
-  force = true
-
-# SPA: client-side routing
+# SPA fallback: /api/* is written into public/_redirects during `npm run build` from VITE_API_ORIGIN.
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -39,7 +39,7 @@ export const env = {
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
-  /** API origin, no trailing slash (e.g. https://streamengine-api.onrender.com) */
+  /** API origin, no trailing slash (e.g. https://your-service.onrender.com) */
   apiOrigin: (import.meta.env.VITE_API_ORIGIN || '').replace(/\/$/, ''),
   /** Public site URL for OAuth / redirects when it matches current origin */
   appUrl: (import.meta.env.VITE_APP_URL || '').trim().replace(/\/$/, ''),

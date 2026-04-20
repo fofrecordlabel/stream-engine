@@ -98,7 +98,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
       setResults(tracks)
       if (hint) setSearchHint(hint)
       else if (!searchConfigured) {
-        setSearchHint('Live search needs SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET on your API server (e.g. Render → streamengine-api → Environment).')
+        setSearchHint('Live search needs SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET on your API server (e.g. Render → your web service → Environment).')
       } else setSearchHint('')
     } finally {
       setSearching(false)

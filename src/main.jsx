@@ -36,7 +36,7 @@ if (need.length) {
 }
 if (isProd && env.apiOrigin && !isLikelyValidApiOriginUrl(env.apiOrigin)) {
   console.error(
-    '[StreamEngine] VITE_API_ORIGIN must be your API base URL (e.g. https://streamengine-api.onrender.com), not a Spotify secret or other key. Fix in Netlify → Environment variables → redeploy.',
+    '[StreamEngine] VITE_API_ORIGIN must be your API base URL (e.g. https://your-api.onrender.com), not a Spotify secret or other key. Fix in Netlify → Environment variables → redeploy.',
   )
 }
 

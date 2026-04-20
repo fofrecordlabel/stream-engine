@@ -3,24 +3,25 @@ StreamEngine — deploy from GitHub (minimal clicks)
 
 What is already IN THE REPO (netlify.toml — Netlify UI overrides the same key names):
   • Build: npm ci && npm run build, publish dist
-  • /api/* → optional Netlify proxy to Render (the browser also calls VITE_API_ORIGIN first in production)
+  • /api/* on Netlify proxies to the same base URL as VITE_API_ORIGIN (generated at build; see scripts/emit-netlify-redirects.mjs)
   • SPA catch-all for client routing
-  • Defaults: VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_API_ORIGIN, VITE_SUPABASE_URL (rltejlyhvhlivskbezkx)
+  • Defaults: VITE_SPOTIFY_CLIENT_ID, VITE_APP_URL, VITE_SUPABASE_URL (rltejlyhvhlivskbezkx)
   • render.yaml → API on Render: Spotify client id, SUPABASE_URL, CORS to your Netlify site
 
 Netlify → Environment variables (typical production set):
+  VITE_API_ORIGIN — REQUIRED for production API calls: your live Render web service root (https://<name>.onrender.com). Open it in a browser: GET /health must return JSON. Plain “Not Found” means nothing is deployed at that hostname yet — deploy the API on Render first, then paste the real URL here (Build + Run scope).
   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_SPOTIFY_CLIENT_ID
   Spotify: the browser only reads VITE_SPOTIFY_CLIENT_ID (or the built-in default in src/lib/env.js). A variable named SPOTIFY_CLIENT_ID without the VITE_ prefix is ignored by Vite — duplicate the same Client ID into VITE_SPOTIFY_CLIENT_ID if you set it in the UI.
-  + VITE_APP_URL and VITE_API_ORIGIN if you do not rely on netlify.toml defaults.
+  + VITE_APP_URL if it differs from netlify.toml.
   After edits: Deploys → Trigger deploy.
 
 IMPORTANT — VITE_API_ORIGIN is a URL, not a key:
-  Set it to exactly your Render web service root, e.g. https://streamengine-api.onrender.com (no trailing slash, no path).
+  No trailing slash, no path. Use the exact URL Render shows for your Web Service (not a guess).
   Do NOT paste SPOTIFY_CLIENT_SECRET or STRIPE_SECRET_KEY here — those belong only on Render (server).
   Never put STRIPE_SECRET_KEY in Netlify with a VITE_ prefix (it would ship to the browser).
 
 You still must add SECRETS once on the API host (they must not be committed to Git):
-  On Render → streamengine-api → Environment:
+  On Render → your API service → Environment:
     SPOTIFY_CLIENT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
     SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, (+ optional OPENAI_API_KEY, STRIPE_SUBSCRIPTION_PRICE_ID)
 
@@ -29,7 +30,7 @@ Optional: npx netlify-cli env:import .env (from a machine that has a complete .e
 
 If your Netlify URL is not streamenginev1.netlify.app, edit netlify.toml (VITE_APP_URL) and render.yaml (APP_URL + CORS_ALLOW_ORIGINS).
 
-If your Render API name is not streamengine-api, change the Render service name and set VITE_API_ORIGIN in netlify.toml to match (https://<name>.onrender.com, no trailing slash).
+If your Render service URL differs from what you first guessed, set VITE_API_ORIGIN on Netlify to that URL and redeploy (the Netlify /api proxy is rebuilt from this variable each build).
 
 Supabase — Google / Apple OAuth (manual dashboard checklist)
 ------------------------------------------------------------
