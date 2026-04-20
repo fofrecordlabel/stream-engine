@@ -1,6 +1,9 @@
 # Deploy the API to Render from the same GitHub repo (Blueprint).
 # https://render.com/docs/blueprint-spec
 #
+# Manual Web Service (not from blueprint): root = repo root, build = npm ci, start = node server/index.js
+# Do NOT use src/server.js — the API entry file is server/index.js
+#
 # After the first deploy, open the Render service → Environment and set the secrets
 # marked sync: false (Stripe + Supabase service role). Those cannot live in GitHub.
 
@@ -11,10 +14,12 @@ services:
     region: oregon
     plan: free
     rootDir: .
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: node server/index.js
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
       - key: NODE_ENV
         value: production
       - key: APP_URL

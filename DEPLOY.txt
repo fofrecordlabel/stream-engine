@@ -46,6 +46,14 @@ The app calls supabase.auth.signInWithOAuth with providers `google` and `apple` 
 
 Exclusive lane (guests): POST /api/create-exclusive-guest-checkout — no userId; Stripe metadata billing_kind=exclusive_guest. Webhook/sync skips Supabase credits.
 
+Render — Web Service settings (if you create the API by hand)
+--------------------------------------------------------------
+  Root directory: (empty = repo root)
+  Build command:   npm ci
+  Start command:   node server/index.js
+  Health check:    /health
+  Node:            20.x (repo has .node-version and render.yaml NODE_VERSION; avoids accidental Node 25+)
+
 Render API — HTTP routes (Express)
 -----------------------------------
 Health:
