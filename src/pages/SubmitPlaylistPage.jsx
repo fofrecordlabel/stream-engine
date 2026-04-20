@@ -3,7 +3,7 @@ import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
-import { dbInsert, isDemo } from '../lib/supabase.js'
+import { dbInsert } from '../lib/supabase.js'
 import { fetchSpotifyPlaylist, isSpotifyPlaylistUrl, canonicalSpotifyPlaylistUrl } from '../lib/spotify.js'
 
 const GENRE_OPTIONS = ['Hip-Hop', 'R&B', 'Electronic', 'Indie', 'Pop', 'Lo-Fi', 'Latin', 'Afrobeats', 'Soul', 'Country', 'Jazz']
@@ -104,22 +104,19 @@ export default function SubmitPlaylistPage({ setPage }) {
     }
     setSubmitting(true)
     try {
-      if (!isDemo) {
-        const row = {
-          curator_id:      user?.id || null,
-          name:            form.name.trim(),
-          spotify_url:     canonicalSpotifyPlaylistUrl(spotUrl.trim()) || spotUrl.trim() || null,
-          genre:           form.genre,
-          description:     form.description.trim() || null,
-          submission_type: form.type,
-          status:          'pending',
-        }
-        const { error } = await dbInsert('playlist_submissions', row)
-        if (error) {
-          toast.error(error.message, 'Submission failed')
-          setSubmitting(false)
-          return
-        }
+      const row = {
+        curator_id:      user?.id || null,
+        name:            form.name.trim(),
+        spotify_url:     canonicalSpotifyPlaylistUrl(spotUrl.trim()) || spotUrl.trim() || null,
+        genre:           form.genre,
+        description:     form.description.trim() || null,
+        submission_type: form.type,
+        status:          'pending',
+      }
+      const { error } = await dbInsert('playlist_submissions', row)
+      if (error) {
+        toast.error(error.message, 'Submission failed')
+        return
       }
       setDone(true)
       toast.success(`${form.name} submitted for review`, 'Playlist submitted!')

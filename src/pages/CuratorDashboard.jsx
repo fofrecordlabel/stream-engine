@@ -5,6 +5,7 @@ import { MobileDrawer } from '../components/layout/Sidebar.jsx'
 import { CuratorInboxSection, CuratorPlaylistsSection, CuratorHistorySection, CuratorProfileSection } from '../components/curator/index.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { isDemo } from '../lib/supabase.js'
+import { isDev } from '../lib/env.js'
 
 const NAV = [
   { id:"inbox",     icon:"📥", label:"Inbox"            },
@@ -41,9 +42,9 @@ export default function CuratorDashboard({ setPage }) {
         <div style={{ fontSize:36, marginBottom:12 }}>🎵</div>
         <div style={{ fontWeight:800, fontSize:18, color:T.w, marginBottom:6 }}>{title}</div>
         <div style={{ fontSize:13.5, color:T.g300, maxWidth:420, margin:'0 auto' }}>{desc}</div>
-        {isDemo && (
+        {isDev && isDemo && (
           <div style={{ marginTop:12, fontSize:12.5, color:T.gold, fontWeight:800 }}>
-            Demo mode is enabled — connect Supabase to use real curator data.
+            Local only: add VITE_SUPABASE_ANON_KEY so inbox and playlists load from your database.
           </div>
         )}
       </div>

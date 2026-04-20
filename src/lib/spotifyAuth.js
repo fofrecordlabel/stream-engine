@@ -30,6 +30,10 @@ const SCOPES = [
   'user-read-private',
 ].join(' ')
 
+/** Window events so UI can sync after OAuth / disconnect without a full reload. */
+export const SPOTIFY_TOKEN_UPDATED_EVENT = 'se-spotify-token-updated'
+export const SPOTIFY_TOKEN_CLEARED_EVENT = 'se-spotify-token-cleared'
+
 const TOKEN_KEY    = 'se_spotify_token'
 const VERIFIER_KEY = 'se_spotify_pkce_verifier'
 const STATE_KEY    = 'se_spotify_state'
@@ -88,6 +92,9 @@ function saveToken(token) {
     refresh_token: token.refresh_token || null,
     expires_at:    Date.now() + (token.expires_in ?? 3600) * 1000,
   }))
+  try {
+    window.dispatchEvent(new CustomEvent(SPOTIFY_TOKEN_UPDATED_EVENT))
+  } catch { /* ignore */ }
 }
 
 function loadToken() {
@@ -101,6 +108,9 @@ export function clearSpotifyToken() {
   sessionStorage.removeItem(STATE_KEY)
   sessionStorage.removeItem(OAUTH_PENDING_KEY)
   sessionStorage.removeItem(OAUTH_STARTED_AT_KEY)
+  try {
+    window.dispatchEvent(new CustomEvent(SPOTIFY_TOKEN_CLEARED_EVENT))
+  } catch { /* ignore */ }
 }
 
 export function isSpotifyConnected() {
@@ -215,10 +225,10 @@ export async function getSpotifyAccessToken() {
     return stored.access_token
   }
 
-  // Try refresh
+  // Try refresh (one immediate retry for flaky networks before dropping the session)
   if (stored.refresh_token) {
-    try {
-      const res = await fetch('https://accounts.spotify.com/api/token', {
+    const refreshOnce = async () => {
+      return fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -227,6 +237,13 @@ export async function getSpotifyAccessToken() {
           refresh_token: stored.refresh_token,
         }),
       })
+    }
+    try {
+      let res = await refreshOnce()
+      if (!res.ok) {
+        await new Promise((r) => setTimeout(r, 500))
+        res = await refreshOnce()
+      }
       if (res.ok) {
         const t = await res.json()
         saveToken({ ...t, refresh_token: t.refresh_token || stored.refresh_token })

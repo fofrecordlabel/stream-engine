@@ -685,9 +685,14 @@ app.post('/api/ai/streamengine', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Invalid useCase' })
     }
 
-    // Demo fallback (keeps app runnable without real keys).
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(503).json({
+          ok: false,
+          error: 'AI is not configured. Set OPENAI_API_KEY on the API server.',
+        })
+      }
       const content = getDemoResponse({ useCase, input, context })
       return res.json({ ok: true, useCase, content, meta: { demo: true } })
     }

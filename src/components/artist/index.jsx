@@ -1152,12 +1152,12 @@ export function SubmissionBuilder({ song, campaigns = [], onBack, wallet, setWal
           <div style={{ textAlign:"center", padding:"50px 20px", color:T.g300 }}>
             <div style={{ fontSize:34, marginBottom:11 }}>🎯</div>
             <div style={{ fontWeight:600, fontSize:14.5, marginBottom:6 }}>
-              {isDemo ? 'No curators match' : 'No curator marketplace data yet'}
+              No curators match
             </div>
             <div style={{ fontSize:12.5, color:T.g400, marginBottom:10 }}>
-              {isDemo ? 'Try widening your filters.' : 'In live mode, curator inventory should come from connected backend data.'}
+              Try widening your filters or reset to browse the full list.
             </div>
-            {isDemo && <button className="bt" onClick={resetFilters}>Reset all filters</button>}
+            <button className="bt" onClick={resetFilters}>Reset all filters</button>
           </div>
         ) : (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:12 }}>
@@ -1472,17 +1472,18 @@ export function BillingSection({ wallet, setWallet }) {
         <div style={{ fontSize:11, fontWeight:800, color:T.g300, letterSpacing:'.08em', textTransform:'uppercase', marginBottom:10 }}>
           Order history
         </div>
-        {isDemo && (
+        {isDemo ? (
           <div style={{ fontSize:13, color:T.g300, lineHeight:1.6 }}>
-            Billing history appears here once Supabase + Stripe webhooks are connected.
+            Order history loads from your account after Supabase is configured and you complete a purchase.
           </div>
-        )}
-        {!isDemo && ordersLoading && <div style={{ fontSize:13, color:T.g300 }}>Loading…</div>}
-        {!isDemo && ordersError && <div style={{ fontSize:13, color:T.red, fontWeight:700 }}>⚠ {ordersError}</div>}
-        {!isDemo && !ordersLoading && !ordersError && orders.length === 0 && (
+        ) : (
+          <>
+        {ordersLoading && <div style={{ fontSize:13, color:T.g300 }}>Loading…</div>}
+        {ordersError && <div style={{ fontSize:13, color:T.red, fontWeight:700 }}>⚠ {ordersError}</div>}
+        {!ordersLoading && !ordersError && orders.length === 0 && (
           <div style={{ fontSize:13, color:T.g300, lineHeight:1.6 }}>No purchases yet.</div>
         )}
-        {!isDemo && orders.length > 0 && (
+        {orders.length > 0 && (
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {orders.map(o => (
               <div key={o.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'10px 12px', borderRadius:12, border:`1px solid ${T.b0}`, background:'rgba(255,255,255,.03)' }}>
@@ -1500,6 +1501,8 @@ export function BillingSection({ wallet, setWallet }) {
               </div>
             ))}
           </div>
+        )}
+          </>
         )}
       </div>
 

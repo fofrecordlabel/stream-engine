@@ -7,8 +7,6 @@ import { useToast } from '../context/ToastContext.jsx'
 import { fetchSpotifyTrack, isSpotifyTrackUrl } from '../lib/spotify.js'
 import { spotifyMetadataUnavailableMessage } from '../lib/apiClient.js'
 import { setPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
-import { isDemo } from '../lib/supabase.js'
-
 export default function SubmitSongPage({ setPage }) {
   const { isLoggedIn } = useAuth()
   const toast = useToast()
@@ -59,7 +57,6 @@ export default function SubmitSongPage({ setPage }) {
       <div className="se-shell" style={{ maxWidth:720, margin:'0 auto', paddingTop:110, paddingBottom:80, textAlign:'center' }}>
         <div style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'6px 12px', borderRadius:999, background:'rgba(255,255,255,.04)', border:`1px solid ${T.b0}`, color:T.g200, fontWeight:900, fontSize:11.5, letterSpacing:'.08em', textTransform:'uppercase', marginBottom:16 }}>
           Submit song
-          {isDemo && <span style={{ color:T.gold }}>Demo</span>}
         </div>
         <h1 style={{ fontSize:'clamp(26px,4.4vw,40px)', fontWeight:900, letterSpacing:'-.03em', marginBottom:10 }}>Paste a Spotify track link</h1>
         <p style={{ color:T.g200, fontSize:15, margin:'0 auto 22px', maxWidth:640, lineHeight:1.7 }}>

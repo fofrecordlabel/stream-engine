@@ -3,7 +3,7 @@
  * In demo mode, stays empty (no seeded production-looking records).
  */
 import { useState, useEffect } from 'react'
-import { isDemo, dbInsert, dbUpdate, dbDelete, supabase } from '../lib/supabase.js'
+import { isDemo, dbInsert, dbUpdate, dbDelete, supabase, supabaseConfigErrorMessage } from '../lib/supabase.js'
 import { collapseDuplicateSongsForArtist } from '../lib/songDedupe.js'
 
 function normalizeSongFromDb(data) {
@@ -68,6 +68,9 @@ export function useSongs(userId) {
   }, [userId])
 
   const addSong = async (song) => {
+    if (isDemo) {
+      return { data: null, error: { message: supabaseConfigErrorMessage() } }
+    }
     const incomingSpotifyId = song.spotifyId || song.spotify_id || song.trackId || null
     const existing = songs.find(s =>
       (incomingSpotifyId && (s.spotifyId === incomingSpotifyId || s.spotify_id === incomingSpotifyId)) ||
@@ -92,10 +95,6 @@ export function useSongs(userId) {
         duration: song.duration ?? existing.duration ?? existing.duration_ms,
         submissions: existing.submissions ?? song.submissions ?? 0,
       }
-      if (isDemo) {
-        setSongs(p => p.map(s => (s.id === existing.id ? mergedClient : s)))
-        return { data: mergedClient, error: null, duplicate: true, merged: true }
-      }
       const patch = buildMergeUpdate(existing, song, incomingSpotifyId)
       const { data: updated, error: upErr } = await supabase
         .from('songs')
@@ -109,17 +108,6 @@ export function useSongs(userId) {
       return { data: normalized, error: null, duplicate: true, merged: true }
     }
 
-    if (isDemo) {
-      const newSong = {
-        ...song,
-        id: song.id || (incomingSpotifyId ? `song-${incomingSpotifyId}` : `s${Date.now()}`),
-        spotifyId: incomingSpotifyId,
-        trackId: incomingSpotifyId,
-        submissions: song.submissions || 0,
-      }
-      setSongs(p => [newSong, ...p])
-      return { data: newSong, error: null }
-    }
     const baseRow = {
       artist_id:   userId,
       title:       song.title,
@@ -187,16 +175,17 @@ export function useSongs(userId) {
   }
 
   const updateSong = async (id, patch) => {
-    if (isDemo) { setSongs(p => p.map(s => s.id===id ? {...s,...patch} : s)); return { error:null } }
+    if (isDemo) return { data: null, error: { message: supabaseConfigErrorMessage() } }
     const { data, error } = await dbUpdate('songs', id, patch)
     if (!error) setSongs(p => p.map(s => s.id===id ? {...s,...data} : s))
     return { data, error }
   }
 
   const removeSong = async (id) => {
-    setSongs(p => p.filter(s => s.id !== id))
-    if (!isDemo) return dbDelete('songs', id)
-    return { error: null }
+    if (isDemo) return { error: { message: supabaseConfigErrorMessage() } }
+    const { error } = await dbDelete('songs', id)
+    if (!error) setSongs(p => p.filter(s => s.id !== id))
+    return { error }
   }
 
   const incrementSubmissions = (id) =>

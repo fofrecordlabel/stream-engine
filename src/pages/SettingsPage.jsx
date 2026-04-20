@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
-import { isSpotifyConnected, startSpotifyAuth, clearSpotifyToken, hasSpotifyClientId } from '../lib/spotifyAuth.js'
-import { supabase, isDemo } from '../lib/supabase.js'
+import {
+  isSpotifyConnected,
+  startSpotifyAuth,
+  clearSpotifyToken,
+  hasSpotifyClientId,
+  SPOTIFY_TOKEN_UPDATED_EVENT,
+  SPOTIFY_TOKEN_CLEARED_EVENT,
+} from '../lib/spotifyAuth.js'
+import { supabase, isDemo, supabaseConfigErrorMessage } from '../lib/supabase.js'
 import { isStripeConfigured } from '../lib/stripe.js'
 import { apiFetch } from '../lib/apiClient.js'
 import { useCampaigns } from '../hooks/useCampaigns.js'
@@ -170,12 +177,12 @@ function ProfileSettings({ user }) {
 
   const accentColor = user?.color || T.gn
   const initials    = (user?.name || 'ME').slice(0, 2).toUpperCase()
-  const memberSince = user?.id
-    ? new Date(user.profile?.created_at || Date.now()).toLocaleDateString('en-US', { month:'long', year:'numeric' })
-    : 'March 2025'
+  const memberSince = user?.profile?.created_at
+    ? new Date(user.profile.created_at).toLocaleDateString('en-US', { month:'long', year:'numeric' })
+    : '—'
 
   const saveProfile = async () => {
-    if (isDemo) return { error: null }
+    if (isDemo) return { error: { message: supabaseConfigErrorMessage() } }
     const { error } = await supabase
       .from('profiles')
       .update({ display_name: name.trim(), updated_at: new Date().toISOString() })
@@ -323,13 +330,12 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {isDemo && (
+      {isDev && isDemo && (
         <Card style={{ border: `1px solid rgba(255,199,64,.28)`, background: 'rgba(255,199,64,.06)' }}>
-          <div style={{ fontWeight: 800, color: T.gold, marginBottom: 8, fontSize: 14 }}>Cloud data is off (demo mode)</div>
+          <div style={{ fontWeight: 800, color: T.gold, marginBottom: 8, fontSize: 14 }}>Local dev — Supabase not configured</div>
           <div style={{ fontSize: 13, color: T.g200, lineHeight: 1.55 }}>
-            Add <code style={{ fontSize: 12, color: T.w }}>VITE_SUPABASE_ANON_KEY</code> and{' '}
-            <code style={{ fontSize: 12, color: T.w }}>VITE_SUPABASE_URL</code> in Netlify → Environment variables, then redeploy.
-            Each signed-in user then gets their own saved songs, campaigns, and credits in Supabase.
+            Add <code style={{ fontSize: 12, color: T.w }}>VITE_SUPABASE_ANON_KEY</code> (and optionally{' '}
+            <code style={{ fontSize: 12, color: T.w }}>VITE_SUPABASE_URL</code>) to <code style={{ fontSize: 12, color: T.w }}>.env</code>, restart the dev server, then sign in — each user gets their own rows via RLS.
           </div>
         </Card>
       )}
@@ -467,12 +473,34 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
   )
 }
 
+/** Once /api/spotify/health returns OK, keep showing connected (avoids flapping on transient failures). */
+const LS_SPOTIFY_HEALTH_OK = 'se_streamengine_spotify_api_health_ok'
+
 /* ══════════════════════════
    3. INTEGRATIONS & NOTIFICATIONS
 ══════════════════════════ */
 function IntegrationsSettings() {
   const toast = useToast()
-  const spotifyOk = isSpotifyConnected()
+  const [spotifyUserRev, setSpotifyUserRev] = useState(0)
+  const [spotifyHealthLatched, setSpotifyHealthLatched] = useState(() => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem(LS_SPOTIFY_HEALTH_OK) === '1'
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    const bump = () => setSpotifyUserRev((n) => n + 1)
+    window.addEventListener(SPOTIFY_TOKEN_UPDATED_EVENT, bump)
+    window.addEventListener(SPOTIFY_TOKEN_CLEARED_EVENT, bump)
+    return () => {
+      window.removeEventListener(SPOTIFY_TOKEN_UPDATED_EVENT, bump)
+      window.removeEventListener(SPOTIFY_TOKEN_CLEARED_EVENT, bump)
+    }
+  }, [])
+
+  const spotifyOk = useMemo(() => isSpotifyConnected(), [spotifyUserRev])
   const [notifEmail,  setNotifEmail]  = useState(true)
   const [notifInApp,  setNotifInApp]  = useState(true)
   const [notifDigest, setNotifDigest] = useState(true)
@@ -480,6 +508,22 @@ function IntegrationsSettings() {
   const [billingHealth, setBillingHealth] = useState(null)
   const [spotifyApiHealth, setSpotifyApiHealth] = useState(null)
   const [apiReachable, setApiReachable] = useState(null)
+
+  const spotifyServerRowOk = spotifyHealthLatched || !!spotifyApiHealth?.ok
+
+  const spotifyMetaDetail = (() => {
+    if (!spotifyServerRowOk) {
+      if (spotifyApiHealth == null && !spotifyHealthLatched) return 'Checking…'
+      return 'Unreachable — set VITE_API_ORIGIN (Netlify) and confirm the API is up.'
+    }
+    if (spotifyApiHealth?.clientCredentialsConfigured) {
+      return 'Web API + richer artwork (server credentials)'
+    }
+    if (spotifyHealthLatched) {
+      return 'API was reachable earlier on this device; if the live check fails briefly, oEmbed metadata may still work.'
+    }
+    return 'Using server oEmbed fallback — add SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET on Render for best results'
+  })()
 
   useEffect(() => {
     let cancelled = false
@@ -494,6 +538,12 @@ function IntegrationsSettings() {
           setApiReachable(hr ? hr.ok : false)
           setBillingHealth(b)
           setSpotifyApiHealth(s)
+          if (s?.ok) {
+            try {
+              localStorage.setItem(LS_SPOTIFY_HEALTH_OK, '1')
+            } catch { /* ignore */ }
+            setSpotifyHealthLatched(true)
+          }
         }
       } catch {
         if (!cancelled) {
@@ -564,7 +614,7 @@ function IntegrationsSettings() {
         {row('StreamEngine API', apiReachable === true, apiReachable === false ? 'Unreachable — set VITE_API_ORIGIN (Netlify) and confirm Render is up' : apiReachable == null ? 'Checking…' : 'Reachable')}
         {row('Supabase (app)', !isDemo, isDemo ? 'Set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY on Netlify, then redeploy — each user’s data is stored in your project' : 'Signed-in — songs, campaigns, and credits persist per user')}
         {row('Stripe (checkout API)', !!billingHealth?.stripe, billingHealth?.stripe ? 'Server can create Checkout sessions' : 'Set STRIPE_SECRET_KEY (+ Supabase service role) on Render')}
-        {row('Spotify metadata API', !!spotifyApiHealth?.ok, spotifyApiHealth?.clientCredentialsConfigured ? 'Web API + richer artwork (server credentials)' : 'Using server oEmbed fallback — add SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET on Render for best results')}
+        {row('Spotify metadata API', spotifyServerRowOk, spotifyMetaDetail)}
         {row('Stripe (browser)', isStripeConfigured(), isStripeConfigured() ? 'Publishable key loaded' : 'Set VITE_STRIPE_PUBLISHABLE_KEY on Netlify')}
       </Card>
 
@@ -682,7 +732,7 @@ function CuratorSettings({ user }) {
   const toggleGenre = (g) => setGenreToggles(p => ({ ...p, [g]: !p[g] }))
 
   const saveGenres = async () => {
-    if (isDemo) return { error: null }
+    if (isDemo) return { error: { message: supabaseConfigErrorMessage() } }
     const genres = Object.entries(genreTogles).filter(([, on]) => on).map(([g]) => g)
     const { error } = await supabase.from('curator_profiles')
       .upsert({ id: user?.id, genres }, { onConflict: 'id' })
@@ -690,14 +740,14 @@ function CuratorSettings({ user }) {
   }
 
   const saveMessage = async () => {
-    if (isDemo) return { error: null }
+    if (isDemo) return { error: { message: supabaseConfigErrorMessage() } }
     const { error } = await supabase.from('curator_profiles')
       .upsert({ id: user?.id, rules: acceptMsg.trim() }, { onConflict: 'id' })
     return { error }
   }
 
   const saveLinks = async () => {
-    if (isDemo) return { error: null }
+    if (isDemo) return { error: { message: supabaseConfigErrorMessage() } }
     const { error } = await supabase.from('curator_profiles')
       .upsert({
         id: user?.id,

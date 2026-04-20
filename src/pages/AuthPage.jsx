@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { T } from '../tokens.js'
 import { BrandMark } from '../components/common/Logo.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { isDemo } from '../lib/supabase.js'
+import { isProd } from '../lib/env.js'
+import { supabaseConfigErrorMessage } from '../lib/supabase.js'
 import { getPendingSubmission } from '../lib/pendingSubmission.js'
 import { formatOAuthProviderError } from '../lib/oauthErrors.js'
 
@@ -19,6 +20,7 @@ const ROLE_OPTIONS = [
 
 export default function AuthPage({ setPage, initialMode = 'signin' }) {
   const { signIn, signUp, signInWithProvider, requestPasswordReset, updatePassword, isDemo: demoMode } = useAuth()
+  const localNoSupabase = !isProd && demoMode
   const [mode,        setMode]        = useState(initialMode)   // 'signin' | 'signup'
   const [email,       setEmail]       = useState('')
   const [password,    setPassword]    = useState('')
@@ -119,17 +121,6 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
     }
   }
 
-  const demoLogin = async (demoRole) => {
-    setLoading(true)
-    const emailMap = { artist:'artist@demo.com', curator:'curator@demo.com', admin:'admin@demo.com' }
-    const result = await signIn(emailMap[demoRole], 'demo')
-    setLoading(false)
-    if (!result.error) {
-      const pending = getPendingSubmission()
-      setPage(pending?.resumeAfterAuth ? 'artist' : demoRole === 'curator' ? 'curator' : demoRole === 'admin' ? 'admin' : 'artist')
-    }
-  }
-
   const handleSocialAuth = async (provider) => {
     setError('')
     setInfo('')
@@ -165,9 +156,9 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
       <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, background:'rgba(5,5,6,.92)', backdropFilter:'blur(20px)', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
         <div className="se-shell" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:58 }}>
           <BrandMark onClick={() => setPage('home')} size={26} />
-          {demoMode && (
-            <div style={{ padding:'4px 12px', background:'rgba(255,199,64,.1)', border:'1px solid rgba(255,199,64,.25)', borderRadius:20, fontSize:11, fontWeight:700, color:T.gold }}>
-              Demo Mode
+          {localNoSupabase && (
+            <div style={{ padding:'4px 12px', background:'rgba(255,199,64,.1)', border:'1px solid rgba(255,199,64,.25)', borderRadius:20, fontSize:11, fontWeight:700, color:T.gold, maxWidth:'min(420px,46vw)', textAlign:'right', lineHeight:1.35 }}>
+              Local: no Supabase key
             </div>
           )}
         </div>
@@ -267,22 +258,9 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
           </div>
         )}
 
-        {/* Demo quick-access */}
-        {demoMode && (
-          <div style={{ background:'rgba(255,199,64,.06)', border:'1px solid rgba(255,199,64,.2)', borderRadius:14, padding:'14px 16px', marginBottom:20 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:T.gold, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:10 }}>
-              Demo Mode — no backend connected
-            </div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              {['artist','curator','admin'].map(r => (
-                <button key={r} onClick={() => demoLogin(r)} disabled={loading}
-                  style={{ flex:1, padding:'8px 0', borderRadius:9, border:'1px solid rgba(255,199,64,.3)', background:'rgba(255,199,64,.08)', color:T.gold, fontWeight:700, fontSize:12.5, cursor:'pointer', textTransform:'capitalize', transition:'background .15s' }}
-                  onMouseEnter={e=>e.currentTarget.style.background='rgba(255,199,64,.16)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='rgba(255,199,64,.08)'}>
-                  {r}
-                </button>
-              ))}
-            </div>
+        {localNoSupabase && (
+          <div style={{ background:'rgba(255,199,64,.06)', border:'1px solid rgba(255,199,64,.2)', borderRadius:14, padding:'14px 16px', marginBottom:20, fontSize:13, color:T.g200, lineHeight:1.6 }}>
+            {supabaseConfigErrorMessage()}
           </div>
         )}
 
@@ -388,11 +366,9 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
           </button>
         </p>
 
-        {!demoMode && (
-          <p style={{ textAlign:'center', fontSize:11.5, color:T.g400, marginTop:16, lineHeight:1.5 }}>
-            By signing up you agree to our Terms of Service and Privacy Policy.
-          </p>
-        )}
+        <p style={{ textAlign:'center', fontSize:11.5, color:T.g400, marginTop:16, lineHeight:1.5 }}>
+          By signing up you agree to our Terms of Service and Privacy Policy.
+        </p>
       </div>
     </div>
   )

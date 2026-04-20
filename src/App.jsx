@@ -21,6 +21,9 @@ import BlogPage          from './pages/BlogPage.jsx'
 import BlogPostPage      from './pages/BlogPostPage.jsx'
 import { TermsPage, PrivacyPage, ContactPage, FAQPage, HowItWorksPage } from './pages/TrustPages.jsx'
 import { CheckoutSuccessPage, CheckoutCancelPage } from './pages/CheckoutStatusPages.jsx'
+import { isDemo } from './lib/supabase.js'
+import { isProd } from './lib/env.js'
+import SupabaseRequiredScreen from './components/SupabaseRequiredScreen.jsx'
 
 /* ── Public pages (no auth required) ── */
 const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','subscriptions','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
@@ -258,6 +261,10 @@ function AppInner() {
 
 /* ── Root app ── */
 export default function App() {
+  if (isProd && isDemo) {
+    return <SupabaseRequiredScreen />
+  }
+
   useEffect(() => {
     if (document.getElementById('se-global')) return
     const el = document.createElement('style')

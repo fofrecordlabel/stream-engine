@@ -42,7 +42,7 @@ export default function HomePage({ setPage }) {
             <div className="fu1" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 18px 7px 9px', borderRadius: 30, background: `linear-gradient(135deg,${T.gnGl},rgba(255,255,255,.03))`, border: `1px solid ${T.gnB}`, boxShadow: '0 12px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(127,255,0,.08) inset', marginBottom: 22 }}>
               <span style={{ background: `linear-gradient(135deg,${T.gn},#5ac800)`, color: '#000', fontWeight: 900, fontSize: 9.5, padding: '3px 9px', borderRadius: 20, letterSpacing: '.05em', boxShadow: '0 0 16px rgba(127,255,0,.35)' }}>LIVE</span>
               <Dot size={5} pulse />
-              <span style={{ fontSize: 13, color: T.g100, fontWeight: 500 }}>3,200+ verified Spotify curators</span>
+              <span style={{ fontSize: 13, color: T.g100, fontWeight: 500 }}>Verified Spotify curator network</span>
             </div>
             <h1 className="fu2" style={{ fontSize: 'clamp(46px,7.2vw,88px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-.045em', marginBottom: 24, maxWidth: '100%', textShadow: '0 24px 80px rgba(0,0,0,.45)' }}>
               Get your music
@@ -62,7 +62,7 @@ export default function HomePage({ setPage }) {
                 { i: '✓', t: 'Verified curators' },
                 { i: '🎯', t: 'Multi-select campaign' },
                 { i: '🔒', t: 'Credit refund guarantee' },
-                { i: '⚡', t: '18h avg response' },
+                { i: '⚡', t: 'Clear review timelines' },
               ].map((t) => (
                 <div key={t.t} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 20, background: 'rgba(255,255,255,.04)', border: `1px solid ${T.b0}`, fontSize: 12.5, color: T.g100, fontWeight: 500 }}>
                   <span style={{ fontSize: 11 }}>{t.i}</span>
@@ -78,16 +78,16 @@ export default function HomePage({ setPage }) {
       <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
         <div className="se-shell" style={{ paddingTop: 36, paddingBottom: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 16 }}>
           {[
-            { n: '3,200+', l: 'Curators' },
-            { n: '18K+', l: 'Artists Promoted' },
-            { n: '94%', l: 'Avg Response Rate' },
-            { n: '$2.4M', l: 'Paid to Curators' },
+            { h: 'Verified curators', l: 'Choose who receives your pitch' },
+            { h: 'Campaign control', l: 'Multi-select submissions with credits' },
+            { h: 'Transparent flow', l: 'Status updates and structured feedback' },
+            { h: 'Curator payouts', l: 'Credits convert to earnings on review' },
           ].map((s) => (
-            <div key={s.n} style={{ textAlign: 'center' }}>
-              <div className="mono" style={{ fontSize: 'clamp(22px,3.5vw,32px)', fontWeight: 500, color: T.gn, lineHeight: 1, marginBottom: 5 }}>
-                {s.n}
+            <div key={s.h} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 'clamp(15px,2.2vw,17px)', fontWeight: 800, color: T.gn, lineHeight: 1.25, marginBottom: 6 }}>
+                {s.h}
               </div>
-              <div style={{ fontSize: 13, color: T.g300, fontWeight: 500 }}>{s.l}</div>
+              <div style={{ fontSize: 13, color: T.g300, fontWeight: 500, lineHeight: 1.45 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -249,7 +249,7 @@ export default function HomePage({ setPage }) {
         <div className="se-shell" style={{ maxWidth: 580, position: 'relative' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 20, background: T.gnGl, border: `1px solid ${T.gnB}`, marginBottom: 24 }}>
             <Dot size={5} />
-            <span style={{ fontSize: 12, color: T.gn, fontWeight: 700 }}>Join 18,000+ artists</span>
+            <span style={{ fontSize: 12, color: T.gn, fontWeight: 700 }}>Built for independent artists</span>
           </div>
           <h2 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05, marginBottom: 18 }}>
             Ready to grow on

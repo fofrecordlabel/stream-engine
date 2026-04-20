@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { supabase, isDemo } from '../lib/supabase.js'
+import { supabase, isDemo, supabaseConfigErrorMessage } from '../lib/supabase.js'
 import { setPendingSubmission, getPendingSubmission } from '../lib/pendingSubmission.js'
 import { isUserAlreadyRegisteredError } from '../lib/dedupeRules.js'
 import { env } from '../lib/env.js'
@@ -14,14 +14,7 @@ function oauthRedirectTo() {
   return `${origin}/`
 }
 
-/* ── Demo users for non-Supabase mode ─────────────────────── */
-const DEMO_USERS = {
-  artist:  { id:'demo-artist',  email:'artist@demo.com',  role:'artist',  name:'FOF Records',      avatar:'FO', color:'#7fff00' },
-  curator: { id:'demo-curator', email:'curator@demo.com', role:'curator', name:'VibeCheck Radio',  avatar:'VC', color:'#ec4899' },
-  admin:   { id:'demo-admin',   email:'admin@demo.com',   role:'admin',   name:'Admin',            avatar:'AD', color:'#ff4060' },
-}
-
-const DEMO_CREDITS = { 'demo-artist': 0, 'demo-curator': 0, 'demo-admin': 0 }
+const noCloud = () => ({ message: supabaseConfigErrorMessage() })
 
 /* ── Context ──────────────────────────────────────────────── */
 const AuthCtx = createContext(null)
@@ -34,6 +27,7 @@ export function AuthProvider({ children }) {
 
   /* ── Load profile + credits from Supabase ── */
   const loadProfile = useCallback(async (authUser) => {
+    if (!supabase) return 'artist'
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
@@ -51,7 +45,6 @@ export function AuthProvider({ children }) {
       profile,
     })
 
-    // Load credits balance
     const { data: ledger } = await supabase
       .from('credits_ledger')
       .select('amount')
@@ -132,13 +125,7 @@ export function AuthProvider({ children }) {
 
   /* ── Auth actions ── */
   const signIn = async (email, password) => {
-    if (isDemo) {
-      const r = email.includes('curator') ? 'curator' : email.includes('admin') ? 'admin' : 'artist'
-      const u = DEMO_USERS[r]
-      const profile = { display_name: u.name, role: r, subscription_tier: 'free' }
-      setUser({ ...u, profile }); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
-      return { role: r, error: null }
-    }
+    if (isDemo) return { role: null, error: noCloud() }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error }
     const r = await loadProfile(data.user)
@@ -146,19 +133,12 @@ export function AuthProvider({ children }) {
   }
 
   const signInWithProvider = async (provider, params = {}) => {
-    if (isDemo) {
-      const r = provider === 'apple' ? 'artist' : 'artist'
-      const u = DEMO_USERS[r]
-      const profile = { display_name: u.name, role: r, subscription_tier: 'free' }
-      setUser({ ...u, profile }); setRole(r); setCredits(DEMO_CREDITS[u.id] ?? 0)
-      return { role: r, error: null, demo: true }
-    }
+    if (isDemo) return { role: null, error: noCloud() }
     const key = String(provider || '').toLowerCase().trim()
     if (!SUPABASE_OAUTH_PROVIDERS.has(key)) {
       return { role: null, error: { message: 'Unsupported sign-in provider.' } }
     }
     const redirectTo = oauthRedirectTo()
-    // Preserve invite/ref params (and any pending submission draft) before redirect.
     const pending = getPendingSubmission()
     if (params?.invite && !pending?.invite) {
       setPendingSubmission({ ...(pending || {}), invite: params.invite, resumeAfterAuth: true })
@@ -172,24 +152,17 @@ export function AuthProvider({ children }) {
   }
 
   const requestPasswordReset = async (email) => {
-    if (isDemo) return { error: null, demo: true }
+    if (isDemo) return { error: noCloud() }
     return supabase.auth.resetPasswordForEmail(email, { redirectTo: oauthRedirectTo() })
   }
 
   const updatePassword = async (newPassword) => {
-    if (isDemo) return { error: null, demo: true }
+    if (isDemo) return { error: noCloud() }
     return supabase.auth.updateUser({ password: newPassword })
   }
 
   const signUp = async (email, password, selectedRole = 'artist', displayName = '') => {
-    if (isDemo) {
-      const base = DEMO_USERS[selectedRole] || DEMO_USERS.artist
-      const name = displayName || email.split('@')[0]
-      const u = { ...base, email, name }
-      const profile = { display_name: name, role: selectedRole, subscription_tier: 'free' }
-      setUser({ ...u, profile }); setRole(selectedRole); setCredits(0)
-      return { role: selectedRole, error: null }
-    }
+    if (isDemo) return { role: null, error: noCloud() }
     const name = displayName || email.split('@')[0]
     const { data, error } = await supabase.auth.signUp({
       email, password,
@@ -207,12 +180,12 @@ export function AuthProvider({ children }) {
   }
 
   const signOut = async () => {
-    if (!isDemo) await supabase.auth.signOut()
+    if (supabase) await supabase.auth.signOut()
     setUser(null); setRole(null); setCredits(0)
   }
 
   const addCredits = async (amount, reason = 'purchase', stripePaymentId = null) => {
-    if (isDemo) { setCredits(c => c + amount); return { error: null } }
+    if (isDemo) return { error: noCloud() }
     const { error } = await supabase.from('credits_ledger').insert({
       user_id: user.id, amount, reason, stripe_payment_id: stripePaymentId,
     })
@@ -221,7 +194,7 @@ export function AuthProvider({ children }) {
   }
 
   const spendCredits = async (amount, campaignId) => {
-    if (isDemo) { setCredits(c => c - amount); return { error: null } }
+    if (isDemo) return { error: noCloud() }
     const { error } = await supabase.from('credits_ledger').insert({
       user_id: user.id, amount: -amount, reason: 'campaign_spend', campaign_id: campaignId,
     })

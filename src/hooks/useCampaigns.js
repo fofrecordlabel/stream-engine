@@ -2,7 +2,7 @@
  * useCampaigns — campaign CRUD with Supabase + demo fallback.
  */
 import { useState, useEffect } from 'react'
-import { isDemo, dbInsert, dbUpdate, supabase } from '../lib/supabase.js'
+import { isDemo, dbInsert, dbUpdate, supabase, supabaseConfigErrorMessage } from '../lib/supabase.js'
 import { campaignStatusBlocksResubmit } from '../lib/dedupeRules.js'
 // Intentionally no seeded campaign records, even in demo mode.
 import { creditsToUsd, calcFees } from '../lib/stripe.js'
@@ -105,8 +105,7 @@ export function useCampaigns(userId, role = 'artist') {
 
   const updateCampaignStatus = async (id, status, note = null) => {
     if (isDemo) {
-      setCampaigns(p => p.map(c => c.id===id ? {...c, status, ...(note?{adminNote:note}:{})} : c))
-      return { error: null }
+      return { error: { message: supabaseConfigErrorMessage() } }
     }
     const { data, error } = await dbUpdate('campaigns', id, { status, ...(note?{admin_note:note}:{}) })
     if (!error) setCampaigns(p => p.map(c => c.id===id ? {...c,...data} : c))
