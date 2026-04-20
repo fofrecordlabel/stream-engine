@@ -7,7 +7,7 @@ import {
   exclusiveDirectQuote,
   saveExclusiveQuoteIntent,
 } from '../../lib/exclusiveSubmissionPricing.js'
-import { isSpotifyTrackUrl } from '../../lib/spotify.js'
+import { isSpotifyTrackUrl, fetchSpotifyTrack } from '../../lib/spotify.js'
 import { getStripe, isStripeConfigured, createExclusiveGuestCheckoutSession } from '../../lib/stripe.js'
 
 const exclusiveBtnStyle = {
@@ -55,14 +55,48 @@ export default function ExclusiveLaneOffer({ setPage, isLoggedIn }) {
   const [guestTrackUrl, setGuestTrackUrl] = useState('')
   const [guestErr, setGuestErr] = useState('')
   const [paying, setPaying] = useState(false)
+  const [guestTrackPeek, setGuestTrackPeek] = useState(null)
 
   useEffect(() => {
     if (!exclusiveOpen) {
       setStep('qty')
       setGuestErr('')
       setPaying(false)
+      setGuestTrackPeek(null)
     }
   }, [exclusiveOpen])
+
+  useEffect(() => {
+    if (step !== 'guest') return
+    const u = guestTrackUrl.trim()
+    if (!isSpotifyTrackUrl(u)) {
+      setGuestTrackPeek(null)
+      return
+    }
+    let cancelled = false
+    const t = setTimeout(async () => {
+      setGuestTrackPeek({ loading: true, artworkUrl: null, title: '', artist: '' })
+      try {
+        const track = await fetchSpotifyTrack(u)
+        if (!cancelled) {
+          if (track) {
+            setGuestTrackPeek({
+              loading: false,
+              artworkUrl: track.artworkUrl || null,
+              title: track.title || '',
+              artist: track.artist || '',
+            })
+          } else setGuestTrackPeek({ loading: false, artworkUrl: null, title: '', artist: '' })
+        }
+      } catch {
+        if (!cancelled) setGuestTrackPeek({ loading: false, artworkUrl: null, title: '', artist: '' })
+      }
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [guestTrackUrl, step])
 
   const confirmExclusiveLoggedIn = () => {
     saveExclusiveQuoteIntent({
@@ -258,8 +292,68 @@ export default function ExclusiveLaneOffer({ setPage, isLoggedIn }) {
                 Pay ${exclusiveQuote.youPayUsd.toFixed(2)} — no account required
               </h2>
               <p style={{ fontSize: 13, color: T.g200, lineHeight: 1.55, marginBottom: 16 }}>
-                We’ll email your receipt. Use the Spotify link for the track you want in the exclusive lane ({exclusiveQuote.qty} slot{exclusiveQuote.qty === 1 ? '' : 's'}).
+                We’ll email your receipt. Paste the Spotify track link for the exclusive lane ({exclusiveQuote.qty} slot{exclusiveQuote.qty === 1 ? '' : 's'}). You’ll pay securely on Stripe.
               </p>
+              {isSpotifyTrackUrl(guestTrackUrl.trim()) ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginBottom: 14,
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    border: `1px solid ${T.b0}`,
+                    background: 'rgba(255,255,255,.04)',
+                  }}
+                >
+                  {(() => {
+                    const peek = guestTrackPeek || { loading: true, artworkUrl: null, title: '', artist: '' }
+                    if (peek.loading) {
+                      return <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,.08)', flexShrink: 0 }} />
+                    }
+                    if (peek.artworkUrl) {
+                      return (
+                        <img
+                          src={peek.artworkUrl}
+                          alt=""
+                          width={48}
+                          height={48}
+                          style={{ borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      )
+                    }
+                    return (
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 8,
+                          background: 'rgba(255,255,255,.06)',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 20,
+                        }}
+                      >
+                        🎵
+                      </div>
+                    )
+                  })()}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: T.gn, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+                      Paste Spotify link
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: T.w, lineHeight: 1.3 }}>
+                      {(guestTrackPeek && !guestTrackPeek.loading && guestTrackPeek.title?.trim()) || 'Track preview'}
+                    </div>
+                    {guestTrackPeek && !guestTrackPeek.loading && guestTrackPeek.artist?.trim() ? (
+                      <div style={{ fontSize: 12, color: T.g300, marginTop: 2 }}>{guestTrackPeek.artist}</div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, color: T.g200, display: 'block', marginBottom: 6 }}>Email</label>
@@ -270,8 +364,8 @@ export default function ExclusiveLaneOffer({ setPage, isLoggedIn }) {
                   <input type="text" value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Artist or label name" style={inp} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: T.g200, display: 'block', marginBottom: 6 }}>Spotify track link</label>
-                  <input type="url" value={guestTrackUrl} onChange={(e) => setGuestTrackUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" style={inp} />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: T.g200, display: 'block', marginBottom: 6 }}>Paste Spotify link</label>
+                  <input type="url" value={guestTrackUrl} onChange={(e) => setGuestTrackUrl(e.target.value)} placeholder="Paste Spotify link" style={inp} />
                 </div>
               </div>
               {guestErr ? (

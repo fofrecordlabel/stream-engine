@@ -8,7 +8,8 @@ import { useToast } from '../context/ToastContext.jsx'
 import { useSongs } from '../hooks/useSongs.js'
 import { useCampaigns } from '../hooks/useCampaigns.js'
 import { isSpotifyConnected } from '../lib/spotifyAuth.js'
-import { clearPendingSubmission, getPendingSubmission } from '../lib/pendingSubmission.js'
+import { clearPendingSubmission, getPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
+import { fetchSpotifyTrack, accentFromGenre } from '../lib/spotify.js'
 import { hasBlockingActiveCampaignForSong } from '../lib/dedupeRules.js'
 import { countCampaignsSinceLocalWeekMonday, getArtistWeeklySubmissionCap } from '../lib/submissionQuota.js'
 
@@ -318,7 +319,32 @@ export default function ArtistDashboard({ setPage }) {
     const restore = async () => {
       setRestoringDraft(true)
       try {
-        const pendingSong = pending.song
+        let pendingSong = { ...pending.song }
+        const url = pendingSong.spotifyUrl || pendingSong.spotify_url
+        const needsMeta =
+          pending.status === 'pending-metadata' ||
+          (!String(pendingSong.title || '').trim() &&
+            url &&
+            /open\.spotify\.com\/track/i.test(String(url)))
+
+        if (needsMeta && url) {
+          const track = await fetchSpotifyTrack(url)
+          if (cancelled) return
+          if (!track) {
+            toast.error('Could not load that Spotify link. Add your track from My Songs.', 'Import')
+            clearPendingSubmission()
+            return
+          }
+          pendingSong = normalizePendingSong({
+            ...track,
+            spotifyUrl: track.spotifyUrl || url,
+            trackId: track.id,
+            spotifyId: track.id,
+            genre: pendingSong.genre || '',
+            ac: accentFromGenre(pendingSong.genre || ''),
+          })
+        }
+
         const result = await addSong(pendingSong)
         const readySong = result?.data || pendingSong
 
@@ -333,7 +359,7 @@ export default function ArtistDashboard({ setPage }) {
 
     restore()
     return () => { cancelled = true }
-  }, [user?.id, songsLoading, songs, addSong, restoringDraft])
+  }, [user?.id, songsLoading, songs, addSong, restoringDraft, toast])
 
   const wallet    = credits ?? 0
   const setWallet = () => {}

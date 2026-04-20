@@ -74,11 +74,50 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
   const [heroSuccess, setHeroSuccess] = useState('')
   const [heroPreview, setHeroPreview] = useState(null)
   const [loadingTrack, setLoadingTrack] = useState(false)
+  /** Prefetched artwork for pasted Spotify URL (hero dropdown). */
+  const [urlPeek, setUrlPeek] = useState(null)
+  const urlPeekRef = useRef(null)
 
   const debounceRef = useRef(null)
   const blurTimer = useRef(null)
   const trimmed = query.trim()
   const isUrl = isSpotifyTrackUrl(trimmed)
+
+  useEffect(() => {
+    urlPeekRef.current = urlPeek
+  }, [urlPeek])
+
+  useEffect(() => {
+    if (!isUrl || !trimmed) {
+      setUrlPeek(null)
+      return
+    }
+    setUrlPeek({ loading: true, artworkUrl: null, title: '', artist: '' })
+    let cancelled = false
+    const t = setTimeout(async () => {
+      try {
+        const track = await fetchSpotifyTrack(trimmed)
+        if (!cancelled) {
+          if (track) {
+            setUrlPeek({
+              loading: false,
+              artworkUrl: track.artworkUrl || null,
+              title: track.title || '',
+              artist: track.artist || '',
+            })
+          } else {
+            setUrlPeek({ loading: false, artworkUrl: null, title: '', artist: '' })
+          }
+        }
+      } catch {
+        if (!cancelled) setUrlPeek({ loading: false, artworkUrl: null, title: '', artist: '' })
+      }
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [trimmed, isUrl])
 
   const runSearch = useCallback(async (q) => {
     if (isSpotifyTrackUrl(q)) {
@@ -151,6 +190,34 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
     }
   }
 
+  const queueUrlAndAuth = (u) => {
+    const raw = String(u || '').trim()
+    if (!isSpotifyTrackUrl(raw)) return
+    const peek = urlPeekRef.current
+    setHeroError('')
+    setFocused(false)
+    setPendingSubmission({
+      source: 'home-hero',
+      intent: 'playlist_push',
+      resumeAfterAuth: true,
+      status: 'pending-metadata',
+      song: normalizePendingSong({
+        spotifyUrl: raw,
+        title: peek?.title || '',
+        artist: peek?.artist || '',
+        artworkUrl: peek?.artworkUrl || null,
+      }),
+    })
+    setPage('auth')
+  }
+
+  const runUrlAction = (raw) => {
+    const u = String(raw || '').trim()
+    if (!isSpotifyTrackUrl(u)) return
+    if (isLoggedIn) void loadFromUrl(u)
+    else queueUrlAndAuth(u)
+  }
+
   const selectSearchResult = async (t) => {
     setFocused(false)
     setResults([])
@@ -196,12 +263,15 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
       void selectSearchResult(results[activeIdx])
       return
     }
-    if (isUrl) void loadFromUrl(trimmed)
+    if (isUrl) runUrlAction(trimmed)
   }
 
   const onKeyDown = (e) => {
     if (!showDropdown || !results.length) {
-      if (e.key === 'Enter' && isUrl) void loadFromUrl(trimmed)
+      if (e.key === 'Enter' && isUrl) {
+        e.preventDefault()
+        runUrlAction(trimmed)
+      }
       return
     }
     if (e.key === 'ArrowDown') {
@@ -391,9 +461,53 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
               }}
             >
               {isUrl ? (
-                <div style={{ padding: '12px 16px', fontSize: 13, color: '#4b5563', lineHeight: 1.55 }}>
-                  <strong style={{ color: '#31254a' }}>Spotify link detected.</strong> Press <strong>Go</strong> or{' '}
-                  <strong>Enter</strong> to load artwork and details.
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 16px',
+                    borderBottom: '1px solid rgba(0,0,0,.06)',
+                  }}
+                >
+                  {urlPeek?.loading ? (
+                    <div style={{ width: 56, height: 56, borderRadius: 8, background: '#e5e7eb', flexShrink: 0 }} />
+                  ) : urlPeek?.artworkUrl ? (
+                    <img
+                      src={urlPeek.artworkUrl}
+                      alt=""
+                      width={56}
+                      height={56}
+                      style={{ borderRadius: 8, objectFit: 'cover', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,.15)' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 8,
+                        background: '#e8e4f0',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 22,
+                      }}
+                    >
+                      🎵
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#5b21b6', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>
+                      Paste Spotify link
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: '#3d2266', marginBottom: 2, lineHeight: 1.25 }}>
+                      {urlPeek?.title?.trim() || 'Track preview'}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#5c6570' }}>
+                      {urlPeek?.artist?.trim() ? `By ${urlPeek.artist}` : isLoggedIn ? 'Press Go to load into Playlist Push.' : 'Press Go to sign in and continue.'}
+                    </div>
+                  </div>
                 </div>
               ) : null}
               {!isUrl && trimmed.length < 2 ? (
@@ -492,13 +606,13 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                       e.preventDefault()
                       const p = pasteLink.trim()
                       if (!p) return
-                      void loadFromUrl(p)
                       setQuery(p)
+                      runUrlAction(p)
                     }
                   }}
                   onMouseDown={clearBlurTimer}
                   onFocus={clearBlurTimer}
-                  placeholder="Paste your Spotify song link here"
+                  placeholder="Paste Spotify link"
                   style={{
                     width: '100%',
                     padding: '11px 12px 11px 40px',
@@ -515,12 +629,14 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                 type="button"
                 className="bp"
                 onClick={() => {
-                  void loadFromUrl(pasteLink)
-                  if (pasteLink.trim()) setQuery(pasteLink.trim())
+                  const p = pasteLink.trim()
+                  if (!p) return
+                  setQuery(p)
+                  runUrlAction(p)
                 }}
                 style={{ width: '100%', marginTop: 10, padding: '10px 14px', fontSize: 13, borderRadius: 10, justifyContent: 'center' }}
               >
-                Load pasted link →
+                {isLoggedIn ? 'Load pasted link →' : 'Continue with link →'}
               </button>
             </div>
           </div>
@@ -613,12 +729,13 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
             type="button"
             className="bp"
             onClick={() => {
-              if (isUrl) void loadFromUrl(trimmed)
+              if (isUrl) runUrlAction(trimmed)
               else setPage('get-started')
             }}
             style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 130 }}
           >
-            {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
+            {isUrl ? (isLoggedIn ? 'Load track & continue' : 'Sign in & send to playlists') : 'Get Started'}{' '}
+            <span className="arr">→</span>
           </button>
         )}
         <ExclusiveLaneOffer setPage={setPage} isLoggedIn={isLoggedIn} />

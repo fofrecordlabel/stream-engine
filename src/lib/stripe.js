@@ -85,8 +85,12 @@ export async function createExclusiveGuestCheckoutSession({ qty, youPayUsd, emai
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ qty, youPayUsd, email, spotifyTrackUrl, name }),
   })
-  if (!res.ok) throw new Error(await readApiErrorMessage(res))
-  return res.json()
+  const j = await res.json().catch(() => ({}))
+  if (!res.ok || j?.ok === false) {
+    throw new Error(typeof j?.error === 'string' ? j.error : `Request failed (${res.status})`)
+  }
+  if (!j?.sessionId) throw new Error(j?.error || 'No checkout session returned')
+  return { sessionId: j.sessionId }
 }
 
 export async function createCampaignPaymentIntent({ amountUsd, campaignId, userId }) {

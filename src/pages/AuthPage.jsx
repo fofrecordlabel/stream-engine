@@ -5,8 +5,6 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { isProd } from '../lib/env.js'
 import { supabaseConfigErrorMessage } from '../lib/supabase.js'
 import { getPendingSubmission } from '../lib/pendingSubmission.js'
-import { formatOAuthProviderError } from '../lib/oauthErrors.js'
-
 const inp = {
   width:'100%', background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)',
   borderRadius:11, padding:'12px 14px', fontSize:14, color:'#fff', outline:'none',
@@ -19,7 +17,7 @@ const ROLE_OPTIONS = [
 ]
 
 export default function AuthPage({ setPage, initialMode = 'signin' }) {
-  const { signIn, signUp, signInWithProvider, requestPasswordReset, updatePassword, isDemo: demoMode } = useAuth()
+  const { signIn, signUp, requestPasswordReset, updatePassword, isDemo: demoMode } = useAuth()
   const localNoSupabase = !isProd && demoMode
   const [mode,        setMode]        = useState(initialMode)   // 'signin' | 'signup'
   const [email,       setEmail]       = useState('')
@@ -40,7 +38,8 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
 
   const pendingImport = useMemo(() => {
     const pending = getPendingSubmission()
-    return pending?.resumeAfterAuth && pending?.song ? pending : null
+    if (!pending?.resumeAfterAuth || !pending?.song) return null
+    return pending
   }, [])
 
   useEffect(() => {
@@ -121,21 +120,6 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
     }
   }
 
-  const handleSocialAuth = async (provider) => {
-    setError('')
-    setInfo('')
-    setLoading(true)
-    try {
-      const pending = getPendingSubmission()
-      const invite = pending?.invite || null
-      const result = await signInWithProvider(provider.toLowerCase(), { invite })
-      if (result?.error) setError(formatOAuthProviderError(result.error))
-      // On success, Supabase redirects away. Nothing else to do here.
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleReset = async () => {
     setError('')
     setInfo('')
@@ -167,11 +151,13 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
       <div className="se-shell" style={{ width:'100%', maxWidth:440, animation:'scaleIn .25s cubic-bezier(.34,1.56,.64,1)' }}>
         {pendingImport?.song && (
           <div style={{ marginBottom:18, padding:'12px 14px', borderRadius:14, border:`1px solid ${T.gnB}`, background:T.gnGl }}>
-            <div style={{ fontWeight:800, fontSize:12.5, color:T.gn, marginBottom:4, letterSpacing:'.02em' }}>Track loaded</div>
+            <div style={{ fontWeight:800, fontSize:12.5, color:T.gn, marginBottom:4, letterSpacing:'.02em' }}>Playlist Push</div>
             <div style={{ fontSize:13, color:T.g200, lineHeight:1.55 }}>
-              After you sign in or sign up, we’ll continue with{' '}
-              <strong style={{ color: T.w }}>{pendingImport.song.title || 'your track'}</strong>
-              {pendingImport.song.artist ? <> by {pendingImport.song.artist}</> : null} automatically.
+              After you sign in or sign up, we&apos;ll open the campaign flow for{' '}
+              <strong style={{ color: T.w }}>
+                {pendingImport.song.title?.trim() ? pendingImport.song.title : 'your Spotify link'}
+              </strong>
+              {pendingImport.song.artist?.trim() ? <> by {pendingImport.song.artist}</> : null}.
             </div>
           </div>
         )}
@@ -182,8 +168,8 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
           </div>
           <p style={{ fontSize:14, color:T.g200 }}>
             {mode === 'signin'
-              ? 'Sign in to save songs and submit to playlist curators'
-              : 'Create an account to save your track and launch Playlist Push'}
+              ? 'Sign in with email and password to save songs and submit to playlist curators.'
+              : 'Create an account with email and password to save your track and launch Playlist Push.'}
           </p>
             {invite && (invite.code || invite.ref || invite.src) && (
               <div style={{ marginTop:10, display:'inline-flex', gap:8, alignItems:'center', flexWrap:'wrap', justifyContent:'center' }}>
@@ -204,32 +190,6 @@ export default function AuthPage({ setPage, initialMode = 'signin' }) {
                 )}
               </div>
             )}
-        </div>
-
-        <div style={{ background:'rgba(255,255,255,.03)', border:`1px solid ${T.b0}`, borderRadius:14, padding:'14px 16px', marginBottom:20 }}>
-          <div style={{ fontSize:11, fontWeight:800, color:T.g300, letterSpacing:'.08em', textTransform:'uppercase', marginBottom:12 }}>
-            Continue with
-          </div>
-          <div style={{ display:'grid', gap:10 }}>
-            {[
-              { id:'Google', icon:'G' },
-              { id:'Apple', icon:'A' },
-            ].map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => handleSocialAuth(p.id)}
-                disabled={loading}
-                style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'12px 14px', borderRadius:11, border:`1px solid ${T.b1}`, background:'rgba(255,255,255,.04)', color:T.w, fontSize:13.5, fontWeight:700, cursor:'pointer' }}
-              >
-                <span style={{ fontSize:16, minWidth:16, textAlign:'center' }}>{p.icon}</span>
-                Continue with {p.id}
-              </button>
-            ))}
-          </div>
-          <div style={{ fontSize:12, color:T.g300, lineHeight:1.6, marginTop:12 }}>
-            An account is required to save your Spotify track, restore progress after login, and submit to curators.
-          </div>
         </div>
 
         {resetMode && (
