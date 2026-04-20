@@ -291,7 +291,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
               fontSize: 16,
               background: focused ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.045)',
               border: `1.5px solid ${focused ? 'rgba(30,215,96,.45)' : 'rgba(255,255,255,.1)'}`,
-              borderRadius: 16,
+              borderRadius: showDropdown ? '16px 16px 0 0' : 16,
               color: T.w,
               outline: 'none',
               transition: 'border-color .2s, background .2s, box-shadow .2s',
@@ -367,13 +367,15 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
               position: 'absolute',
               left: 14,
               right: 14,
-              top: 'calc(100% + 6px)',
+              top: '100%',
+              marginTop: -1.5,
               zIndex: 2000,
-              borderRadius: 14,
-              background: '#f4f4f7',
-              border: '1px solid rgba(0,0,0,.12)',
-              boxShadow: '0 24px 60px rgba(0,0,0,.55)',
-              maxHeight: typeof window !== 'undefined' ? Math.min(360, window.innerHeight * 0.42) : 360,
+              borderRadius: '0 0 16px 16px',
+              background: '#fff',
+              border: `1.5px solid ${focused ? 'rgba(30,215,96,.45)' : 'rgba(255,255,255,.1)'}`,
+              borderTop: 'none',
+              boxShadow: '0 20px 50px rgba(0,0,0,.45)',
+              maxHeight: typeof window !== 'undefined' ? Math.min(380, window.innerHeight * 0.48) : 380,
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -381,15 +383,16 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
             }}
           >
             <div
+              className="hero-search-results-scroll"
               style={{
                 overflowY: 'auto',
                 flex: 1,
-                padding: '6px 0',
+                padding: '4px 0',
               }}
             >
               {isUrl ? (
-                <div style={{ padding: '12px 14px', fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
-                  <strong style={{ color: '#111' }}>Spotify link detected.</strong> Press <strong>Go</strong> or{' '}
+                <div style={{ padding: '12px 16px', fontSize: 13, color: '#4b5563', lineHeight: 1.55 }}>
+                  <strong style={{ color: '#31254a' }}>Spotify link detected.</strong> Press <strong>Go</strong> or{' '}
                   <strong>Enter</strong> to load artwork and details.
                 </div>
               ) : null}
@@ -419,41 +422,48 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
+                    gap: 14,
                     width: '100%',
                     textAlign: 'left',
-                    padding: '10px 14px',
+                    padding: '11px 16px',
                     border: 'none',
-                    background: i === activeIdx ? 'rgba(124,58,237,.12)' : 'transparent',
+                    background: i === activeIdx ? 'rgba(124,58,237,.1)' : 'transparent',
                     cursor: 'pointer',
-                    borderBottom: '1px solid rgba(0,0,0,.05)',
+                    borderBottom: '1px solid rgba(0,0,0,.06)',
+                    transition: 'background .12s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (i !== activeIdx) e.currentTarget.style.background = 'rgba(124,58,237,.05)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = i === activeIdx ? 'rgba(124,58,237,.1)' : 'transparent'
                   }}
                 >
                   {t.artworkUrl ? (
-                    <img src={t.artworkUrl} alt="" width={48} height={48} style={{ borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                    <img src={t.artworkUrl} alt="" width={44} height={44} style={{ borderRadius: 6, objectFit: 'cover', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,.12)' }} />
                   ) : (
                     <div
                       style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 8,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 6,
                         background: '#e5e7eb',
                         flexShrink: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 18,
+                        fontSize: 16,
                       }}
                     >
                       🎵
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                       <SpotifyBadge />
                     </div>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: '#111', marginBottom: 2 }}>{t.title}</div>
-                    <div style={{ fontSize: 13, color: '#4b5563' }}>By {t.artist || 'Unknown artist'}</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: '#3d2266', marginBottom: 2, letterSpacing: '-.01em' }}>{t.title}</div>
+                    <div style={{ fontSize: 12.5, color: '#5c6570' }}>By {t.artist || 'Unknown artist'}</div>
                   </div>
                 </button>
               ))}
@@ -461,12 +471,12 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
 
             <div
               style={{
-                padding: '12px 14px 14px',
-                borderTop: '1px solid rgba(0,0,0,.08)',
-                background: '#ececf0',
+                padding: '12px 16px 14px',
+                borderTop: '1px solid rgba(0,0,0,.07)',
+                background: 'linear-gradient(180deg, #ebe4f8 0%, #e4dcf5 100%)',
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#6d28d9', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#5b21b6', marginBottom: 8 }}>
                 Can&apos;t find your song? Paste your link here.
               </div>
               <div style={{ position: 'relative' }}>

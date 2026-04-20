@@ -1416,9 +1416,26 @@ export function BillingSection({ wallet, setWallet }) {
             </div>
             <div style={{ fontSize:11.5, color:T.g400 }}>No card required to browse and save tracks.</div>
           </div>
-          <div style={{ background:T.gnGl, border:`1px solid ${T.gnB}`, borderRadius:16, padding:"16px 16px", position:"relative", textAlign:"center" }}>
-            <div style={{ position:"absolute", top:10, right:12, fontSize:9.5, fontWeight:900, padding:"3px 8px", borderRadius:12, background:T.gn, color:"#000" }}>7-DAY TRIAL</div>
-            <div style={{ fontSize:10.5, fontWeight:800, color:T.gn, letterSpacing:".08em", textTransform:"uppercase", marginBottom:6 }}>StreamEngine Pro</div>
+          <div style={{ background:T.gnGl, border:`1px solid ${T.gnB}`, borderRadius:16, padding:"16px 16px 14px", textAlign:"center" }}>
+            <div style={{ display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"center", gap:"6px 10px", marginBottom:8 }}>
+              <div style={{ fontSize:10.5, fontWeight:800, color:T.gn, letterSpacing:".08em", textTransform:"uppercase" }}>StreamEngine Pro</div>
+              <span
+                style={{
+                  fontSize:7,
+                  fontWeight:900,
+                  letterSpacing:".08em",
+                  textTransform:"uppercase",
+                  padding:"2px 6px",
+                  borderRadius:999,
+                  background:"rgba(127,255,0,.18)",
+                  color:T.gn,
+                  border:`1px solid ${T.gnB}`,
+                  lineHeight:1.25,
+                }}
+              >
+                7-day trial
+              </span>
+            </div>
             <div style={{ fontSize:22, fontWeight:900, color:T.w, marginBottom:4 }}>Upgrade</div>
             <div style={{ fontSize:12.5, color:T.g200, lineHeight:1.55, marginBottom:14 }}>
               Paid subscription after trial. {PRO_WEEKLY_SUBMISSION_CAP} weekly campaigns and priority support.

@@ -23,6 +23,8 @@ import {
   getArtistWeeklySubmissionCap,
 } from '../lib/submissionQuota.js'
 import { isDev, isProd } from '../lib/env.js'
+import { BuyCreditsModal } from '../components/artist/index.jsx'
+import { getPendingSubmission } from '../lib/pendingSubmission.js'
 
 /* ── Shared input style helper ── */
 const inputStyle = (focused = false) => ({
@@ -278,6 +280,47 @@ function ProfileSettings({ user }) {
    2. WALLET & MEMBERSHIP
 ══════════════════════════ */
 function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoading }) {
+  const toast = useToast()
+  const { refreshProfile } = useAuth()
+  const [showBuyCredits, setShowBuyCredits] = useState(false)
+  const [subBusy, setSubBusy] = useState(false)
+
+  const startProCheckout = async () => {
+    if (isDemo) {
+      toast.error('Billing runs against your live Supabase project — not available in local demo mode.', 'Billing')
+      return
+    }
+    if (!user?.id) {
+      toast.error('Sign in to start a subscription.', 'Billing')
+      return
+    }
+    setSubBusy(true)
+    try {
+      const m = await import('../lib/stripe.js')
+      if (!m.isStripeConfigured) {
+        toast.error(
+          isDev ? 'Add VITE_STRIPE_PUBLISHABLE_KEY to your .env.' : 'Stripe is not configured (add VITE_STRIPE_PUBLISHABLE_KEY in Netlify and redeploy).',
+          'Stripe',
+        )
+        return
+      }
+      const out = await m.createSubscriptionCheckoutSession({ userId: user.id })
+      const stripe = await m.getStripe()
+      if (!stripe || !out?.sessionId) {
+        toast.error(
+          out?.error || (isDev ? 'Could not start checkout. Is the backend running?' : 'Could not start checkout. Confirm the API is live and billing env vars are set on Render.'),
+          'Billing',
+        )
+        return
+      }
+      await stripe.redirectToCheckout({ sessionId: out.sessionId })
+    } catch (e) {
+      toast.error(e?.message || 'Subscription checkout failed', 'Billing')
+    } finally {
+      setSubBusy(false)
+    }
+  }
+
   const isCuratorRole = role === 'curator'
   const accentColor = isCuratorRole ? T.gold : T.gn
   const subTier = user?.profile?.subscription_tier || 'free'
@@ -367,9 +410,9 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
             </div>
           </div>
           {role === 'artist' && subTier === 'free' && (
-            <button type="button" onClick={() => setPage('subscriptions')} className="bp"
-              style={{ padding: '10px 22px', fontSize: 13.5 }}>
-              Upgrade to Pro <span className="arr">→</span>
+            <button type="button" disabled={subBusy} onClick={() => void startProCheckout()} className="bp"
+              style={{ padding: '10px 22px', fontSize: 13.5, opacity: subBusy ? 0.75 : 1 }}>
+              {subBusy ? 'Starting checkout…' : <>Upgrade to Pro <span className="arr">→</span></>}
             </button>
           )}
         </div>
@@ -419,7 +462,7 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
             </span>
             <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(127,255,0,.5)', letterSpacing: '.08em' }}>CR</span>
           </div>
-          <button type="button" onClick={() => setPage('artist')}
+          <button type="button" onClick={() => setShowBuyCredits(true)}
             style={{ fontSize: 12, fontWeight: 700, color: T.gn, background: 'none', border: 'none',
                      cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
             Buy Credits →
@@ -469,6 +512,19 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
           ))}
         </div>
       </Card>
+
+      {showBuyCredits && (
+        <BuyCreditsModal
+          onClose={() => setShowBuyCredits(false)}
+          onBuy={() => {
+            void refreshProfile()
+            setShowBuyCredits(false)
+          }}
+          currentCredits={credits ?? 0}
+          userId={user?.id || null}
+          invite={getPendingSubmission()?.invite || null}
+        />
+      )}
     </div>
   )
 }
