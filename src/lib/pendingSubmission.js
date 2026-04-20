@@ -66,3 +66,17 @@ export function hasPendingSubmission() {
   return !!getPendingSubmission()
 }
 
+/** Clears hero draft from localStorage once per browser session so returning visitors don’t see an old track. */
+const GUEST_HOME_CLEAR_KEY = 'se_cleared_legacy_guest_pending_v2'
+
+export function clearGuestPendingOncePerBrowserSession() {
+  if (typeof window === 'undefined') return
+  try {
+    if (sessionStorage.getItem(GUEST_HOME_CLEAR_KEY) === '1') return
+    clearPendingSubmission()
+    sessionStorage.setItem(GUEST_HOME_CLEAR_KEY, '1')
+  } catch {
+    /* private mode / quota */
+  }
+}
+

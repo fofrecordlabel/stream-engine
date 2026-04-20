@@ -611,7 +611,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
             {isUrl ? 'Load track & continue' : 'Get Started'} <span className="arr">→</span>
           </button>
         )}
-        <ExclusiveLaneOffer setPage={setPage} />
+        <ExclusiveLaneOffer setPage={setPage} isLoggedIn={isLoggedIn} />
         <button type="button" className="bs" onClick={() => setPage('subscriptions')} style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 100 }}>
           Pricing
         </button>

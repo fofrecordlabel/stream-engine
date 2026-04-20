@@ -65,6 +65,7 @@ function isBillingPostRetryPath(path) {
   return (
     path.startsWith('/api/create-checkout') ||
     path.startsWith('/api/create-subscription-checkout') ||
+    path.startsWith('/api/create-exclusive-guest-checkout') ||
     path.startsWith('/api/sync-checkout') ||
     path.startsWith('/api/validate-discount') ||
     path.startsWith('/api/billing/create-payment-intent')

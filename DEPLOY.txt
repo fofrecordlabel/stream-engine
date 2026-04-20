@@ -42,6 +42,8 @@ After code deploy, complete these in Supabase (rltejlyhvhlivskbezkx or your proj
 
 The app calls supabase.auth.signInWithOAuth with providers `google` and `apple` and uses VITE_APP_URL when it matches the current origin for redirectTo; otherwise it uses window.location.origin.
 
+Exclusive lane (guests): POST /api/create-exclusive-guest-checkout — no userId; Stripe metadata billing_kind=exclusive_guest. Webhook/sync skips Supabase credits.
+
 Render API — HTTP routes (Express)
 -----------------------------------
 Health:

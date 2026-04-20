@@ -6,9 +6,10 @@ import { Dot, SectionLabel, VerifiedMark, CreditPill } from '../components/commo
 import HeroSpotifySearch from '../components/home/HeroSpotifySearch.jsx'
 import { GENRES, FAQS_DATA } from '../data/index.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { clearGuestPendingOncePerBrowserSession } from '../lib/pendingSubmission.js'
 
 export default function HomePage({ setPage }) {
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, loading } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [genre, setGenre] = useState('All')
   const [openFaq, setOpenFaq] = useState(null)
@@ -18,6 +19,12 @@ export default function HomePage({ setPage }) {
     window.addEventListener('scroll', fn, { passive: true })
     return () => window.removeEventListener('scroll', fn)
   }, [])
+
+  /** Logged-out visitors: drop stale localStorage draft once per session (clean hero / Get Started). */
+  useEffect(() => {
+    if (loading || isLoggedIn) return
+    clearGuestPendingOncePerBrowserSession()
+  }, [loading, isLoggedIn])
 
   const goPricingPage = () => setPage('subscriptions')
 

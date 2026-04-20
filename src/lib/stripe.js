@@ -76,6 +76,19 @@ export async function validateDiscountCode({ code, userId, subtotalUsd }) {
 /**
  * PaymentIntent for campaign / one-off flows (client secret for Stripe.js).
  */
+/**
+ * Exclusive lane — guest checkout (email + Spotify track, no StreamEngine account).
+ */
+export async function createExclusiveGuestCheckoutSession({ qty, youPayUsd, email, spotifyTrackUrl, name = '' }) {
+  const res = await apiFetch('/api/create-exclusive-guest-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ qty, youPayUsd, email, spotifyTrackUrl, name }),
+  })
+  if (!res.ok) throw new Error(await readApiErrorMessage(res))
+  return res.json()
+}
+
 export async function createCampaignPaymentIntent({ amountUsd, campaignId, userId }) {
   const res = await apiFetch('/api/billing/create-payment-intent', {
     method: 'POST',

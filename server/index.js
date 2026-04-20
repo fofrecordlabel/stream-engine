@@ -7,6 +7,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { fetchTrackFromWebApi, fetchPlaylistFromWebApi, searchTracksFromWebApi } from './spotifyServer.js'
 import { normalizeSpotifyPlaylistUrl, normalizeSpotifyTrackUrl } from './spotifyUrls.js'
+import { exclusiveDirectQuote } from './exclusivePricing.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Primary: server/.env (secrets). Secondary: repo root .env for shared keys without overwriting server.
@@ -171,11 +172,16 @@ async function validateDiscountInternal({ code, subtotalCents }) {
 }
 
 async function upsertOrderAndCreditsFromCheckoutSession(session) {
+  const md = session.metadata || {}
+  /** Guest exclusive lane — Stripe only; no Supabase user / credits row. */
+  if (String(md.billing_kind || '') === 'exclusive_guest') {
+    return { ok: true, orderId: null, status: session.payment_status || 'paid', exclusiveGuest: true }
+  }
+
   const stripe = getStripe()
   const supa = getSupabaseAdmin()
   if (!stripe || !supa) throw new Error('Billing not configured')
 
-  const md = session.metadata || {}
   const userId = md.user_id || null
   const credits = Number(md.credits || 0)
   const subtotal = Number(md.subtotal_cents || 0)
@@ -465,6 +471,76 @@ app.post('/api/billing/validate-discount', handleValidateDiscount)
  *  { ok:true, sessionId: string }
  *  { ok:false, error }
  */
+/**
+ * POST /api/create-exclusive-guest-checkout
+ * Body: { qty, youPayUsd, email, spotifyTrackUrl, name? } — no account required.
+ */
+async function handleExclusiveGuestCheckout(req, res) {
+  try {
+    const stripe = getStripe()
+    const appUrl = getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL')
+    if (!stripe || !appUrl) {
+      return res.status(503).json({ ok: false, error: 'Billing not configured (Stripe or APP_URL)' })
+    }
+
+    const { qty, youPayUsd, email, spotifyTrackUrl, name } = req.body || {}
+    const q = Math.min(50, Math.max(1, parseInt(String(qty || '1'), 10) || 1))
+    const quote = exclusiveDirectQuote(q)
+    const clientPay = Number(youPayUsd)
+    if (!Number.isFinite(clientPay) || Math.abs(clientPay - quote.youPayUsd) > 0.02) {
+      return res.status(400).json({ ok: false, error: 'Price mismatch — refresh the page and try again.' })
+    }
+
+    const em = String(email || '').trim().toLowerCase()
+    if (!em || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      return res.status(400).json({ ok: false, error: 'A valid email is required' })
+    }
+
+    const rawUrl = String(spotifyTrackUrl || '').trim()
+    const trackUrl = normalizeSpotifyTrackUrl(rawUrl)
+    if (!trackUrl.includes('open.spotify.com/track/')) {
+      return res.status(400).json({ ok: false, error: 'Paste a Spotify track link (open.spotify.com/track/…)' })
+    }
+
+    const finalCents = Math.round(quote.youPayUsd * 100)
+    const nm = String(name || '').trim().slice(0, 120)
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: em,
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: finalCents,
+          product_data: {
+            name: `Exclusive direct submissions (${quote.qty} slot${quote.qty === 1 ? '' : 's'})`,
+            description: `Guest · ${trackUrl}`,
+          },
+        },
+      }],
+      success_url: `${appUrl.replace(/\/$/, '')}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl.replace(/\/$/, '')}/checkout-cancel`,
+      metadata: {
+        billing_kind: 'exclusive_guest',
+        exclusive_qty: String(quote.qty),
+        guest_email: em,
+        guest_name: nm,
+        spotify_track_url: trackUrl,
+        currency: 'usd',
+        total_cents: String(finalCents),
+        credits: '0',
+        user_id: '',
+        pack_id: `exclusive_guest_${quote.qty}`,
+      },
+    })
+    return res.json({ ok: true, sessionId: session.id })
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || 'Checkout session failed' })
+  }
+}
+
 async function handleCreateCheckout(req, res) {
   try {
     const stripe = getStripe()
@@ -586,6 +662,8 @@ async function handleCreateSubscriptionCheckout(req, res) {
 
 // Required contract: POST /create-checkout (proxied under /api)
 app.post('/api/create-subscription-checkout', handleCreateSubscriptionCheckout)
+app.post('/api/create-exclusive-guest-checkout', handleExclusiveGuestCheckout)
+app.post('/create-exclusive-guest-checkout', handleExclusiveGuestCheckout)
 app.post('/api/create-checkout', handleCreateCheckout)
 app.post('/create-checkout', handleCreateCheckout)
 app.post('/api/billing/create-checkout', handleCreateCheckout)

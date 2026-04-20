@@ -79,14 +79,24 @@ export function CheckoutSuccessPage({ setPage }) {
     <Layout
       setPage={setPage}
       title="Payment successful"
-      subtitle="Your checkout completed successfully. If credits don’t appear immediately, refresh in a moment."
+      subtitle={
+        syncResult?.exclusiveGuest
+          ? 'Thanks — your exclusive lane payment is confirmed. We’ll follow up at the email you used at checkout.'
+          : 'Your checkout completed successfully. If credits don’t appear immediately, refresh in a moment.'
+      }
       tone="success"
     >
       <div style={{ color:T.g100, fontSize:14.5, lineHeight:1.7 }}>
         <div style={{ fontWeight:900, marginBottom:8 }}>Receipt</div>
         <div style={{ color:T.g300 }}>Session: <span className="mono" style={{ color:T.w }}>{sessionId || '—'}</span></div>
         <div style={{ marginTop: 12, color:T.g300, fontSize:13.5 }}>
-          {syncing ? 'Finalizing your order…' : syncResult ? `Order stored (${syncResult.status}). Credits should update shortly.` : 'Order finalization pending.'}
+          {syncing
+            ? 'Finalizing your order…'
+            : syncResult?.exclusiveGuest
+              ? 'Payment recorded. No account was required for this purchase.'
+              : syncResult
+                ? `Order stored (${syncResult.status}). Credits should update shortly.`
+                : 'Order finalization pending.'}
         </div>
         {syncError && (
           <div style={{ marginTop: 10, padding:'10px 12px', borderRadius:12, background:'rgba(255,64,96,.08)', border:'1px solid rgba(255,64,96,.22)', color:T.red, fontSize:13, fontWeight:900 }}>

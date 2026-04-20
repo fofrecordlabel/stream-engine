@@ -8,11 +8,12 @@ import { getPendingSubmission } from '../lib/pendingSubmission.js'
 export default function GetStartedScreen({ setPage }) {
   const { isLoggedIn } = useAuth()
   const pending = getPendingSubmission()
-  const selected = pending?.song || null
+  /** Only show a loaded track after sign-in — guests always see a neutral “start from home” screen. */
+  const selected = isLoggedIn && pending?.song ? pending.song : null
 
   useEffect(() => {
-    if (!selected) return
-    const timer = setTimeout(() => setPage(isLoggedIn ? 'artist' : 'auth'), 600)
+    if (!selected || !isLoggedIn) return
+    const timer = setTimeout(() => setPage('artist'), 600)
     return () => clearTimeout(timer)
   }, [isLoggedIn, selected, setPage])
 
@@ -39,10 +40,12 @@ export default function GetStartedScreen({ setPage }) {
           <div style={{ textAlign:"center", marginBottom:28 }}>
             <div style={{ fontSize:36, marginBottom:12 }}>{selected ? '✓' : '🎵'}</div>
             <h1 style={{ fontSize:"clamp(24px,5vw,36px)", fontWeight:900, letterSpacing:"-.03em", marginBottom:10 }}>
-              {selected ? 'Track ready for Playlist Push' : 'Paste your Spotify link on the homepage'}
+              {selected ? 'Track ready for Playlist Push' : 'Start from the homepage'}
             </h1>
             <p style={{ fontSize:14.5, color:T.g200, lineHeight:1.65 }}>
-              {selected ? 'We already saved your track metadata. Continuing you into the real submission flow now.' : 'Your live submission flow now starts from the homepage paste box.'}
+              {selected
+                ? 'We saved your track. Opening your dashboard…'
+                : 'Paste a Spotify track link in the search box on the home page, or use Exclusive to pay without an account. Create an account when you’re ready to save campaigns.'}
             </p>
           </div>
           {selected ? (
@@ -58,8 +61,8 @@ export default function GetStartedScreen({ setPage }) {
               </div>
             </div>
           ) : null}
-          <button className="bp" onClick={() => setPage(selected ? (isLoggedIn ? "artist" : "auth") : "home")} style={{ width:"100%", padding:"15px 0", fontSize:16, borderRadius:13, marginBottom:12 }}>
-            {selected ? 'Continue' : 'Back to Homepage'} <span className="arr">→</span>
+          <button className="bp" onClick={() => setPage(selected ? "artist" : "home")} style={{ width:"100%", padding:"15px 0", fontSize:16, borderRadius:13, marginBottom:12 }}>
+            {selected ? 'Go to dashboard' : 'Back to Homepage'} <span className="arr">→</span>
           </button>
         </div>
       </div>
