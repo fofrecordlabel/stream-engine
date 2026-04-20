@@ -13,6 +13,11 @@ Netlify → Environment variables (typical production set):
   + VITE_APP_URL and VITE_API_ORIGIN if you do not rely on netlify.toml defaults.
   After edits: Deploys → Trigger deploy.
 
+IMPORTANT — VITE_API_ORIGIN is a URL, not a key:
+  Set it to exactly your Render web service root, e.g. https://streamengine-api.onrender.com (no trailing slash, no path).
+  Do NOT paste SPOTIFY_CLIENT_SECRET or STRIPE_SECRET_KEY here — those belong only on Render (server).
+  Never put STRIPE_SECRET_KEY in Netlify with a VITE_ prefix (it would ship to the browser).
+
 You still must add SECRETS once on the API host (they must not be committed to Git):
   On Render → streamengine-api → Environment:
     SPOTIFY_CLIENT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,

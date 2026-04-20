@@ -5,11 +5,14 @@
  * - Optional: `VITE_API_ORIGIN=https://your-api.example.com` (no trailing slash) for production / split hosts.
  */
 
+import { isLikelyValidApiOriginUrl } from './env.js'
+
 export function apiUrl(path) {
   const p = path.startsWith('/') ? path : `/${path}`
-  const origin = import.meta.env.VITE_API_ORIGIN
-  if (origin) return `${String(origin).replace(/\/$/, '')}${p}`
-  return p
+  const raw = String(import.meta.env.VITE_API_ORIGIN || '').trim().replace(/\/$/, '')
+  if (!raw || !isLikelyValidApiOriginUrl(raw)) return p
+  const base = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+  return `${base.replace(/\/$/, '')}${p}`
 }
 
 /**

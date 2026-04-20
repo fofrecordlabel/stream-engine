@@ -15,6 +15,21 @@ export function isLocalDevHost() {
   return h === 'localhost' || h === '127.0.0.1'
 }
 
+/** True if VITE_API_ORIGIN looks like a full https API base URL (not a secret pasted by mistake). */
+export function isLikelyValidApiOriginUrl(raw) {
+  const s = String(raw || '').trim().replace(/\/$/, '')
+  if (!s) return true
+  // Spotify client secrets are 32 hex chars — never use that as the API "origin"
+  if (/^[0-9a-f]{32}$/i.test(s) && !s.includes('.')) return false
+  try {
+    const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`)
+    if (u.protocol !== 'https:') return false
+    return u.hostname.includes('.')
+  } catch {
+    return false
+  }
+}
+
 export const env = {
   spotifyClientId: import.meta.env.VITE_SPOTIFY_CLIENT_ID || '',
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',

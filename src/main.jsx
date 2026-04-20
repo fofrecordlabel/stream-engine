@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './styles/globals.css'
 import App from './App.jsx'
 import { STREAMENGINE_SUPABASE_URL } from './lib/supabase.js'
-import { assertProdPublicEnv, env } from './lib/env.js'
+import { assertProdPublicEnv, env, isProd, isLikelyValidApiOriginUrl } from './lib/env.js'
 
 /** Warm connections for first paint (URLs are public). */
 function addLinkRel(rel, href, crossOrigin) {
@@ -32,6 +32,11 @@ const need = assertProdPublicEnv()
 if (need.length) {
   console.warn(
     `[StreamEngine] Production build missing: ${need.join(', ')} — set in Netlify → Environment variables and redeploy.`,
+  )
+}
+if (isProd && env.apiOrigin && !isLikelyValidApiOriginUrl(env.apiOrigin)) {
+  console.error(
+    '[StreamEngine] VITE_API_ORIGIN must be your API base URL (e.g. https://streamengine-api.onrender.com), not a Spotify secret or other key. Fix in Netlify → Environment variables → redeploy.',
   )
 }
 
