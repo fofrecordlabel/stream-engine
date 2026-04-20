@@ -1,6 +1,7 @@
 # Netlify reads this from GitHub. UI env vars override these when the same key exists.
 # Recommended in Netlify → Environment variables (build + runtime for Vite):
 #   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_SPOTIFY_CLIENT_ID
+# Spotify: use VITE_SPOTIFY_CLIENT_ID for the site (Vite only exposes VITE_*). A bare SPOTIFY_CLIENT_ID in the Netlify UI does nothing for the React bundle — copy the same value into VITE_SPOTIFY_CLIENT_ID or rely on the default below + src/lib/env.js DEFAULT_SPOTIFY_CLIENT_ID.
 # Plus either set VITE_APP_URL / VITE_API_ORIGIN here or in the UI.
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 

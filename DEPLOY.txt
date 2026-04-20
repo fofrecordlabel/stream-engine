@@ -10,6 +10,7 @@ What is already IN THE REPO (netlify.toml — Netlify UI overrides the same key 
 
 Netlify → Environment variables (typical production set):
   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_SPOTIFY_CLIENT_ID
+  Spotify: the browser only reads VITE_SPOTIFY_CLIENT_ID (or the built-in default in src/lib/env.js). A variable named SPOTIFY_CLIENT_ID without the VITE_ prefix is ignored by Vite — duplicate the same Client ID into VITE_SPOTIFY_CLIENT_ID if you set it in the UI.
   + VITE_APP_URL and VITE_API_ORIGIN if you do not rely on netlify.toml defaults.
   After edits: Deploys → Trigger deploy.
 

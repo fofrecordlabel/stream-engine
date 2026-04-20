@@ -2,6 +2,9 @@
  * Central browser env access (Vite). No secrets — only public VITE_* keys.
  */
 
+/** Public Spotify Client ID for this app (Dashboard → Basic Information). Override with VITE_SPOTIFY_CLIENT_ID. */
+export const DEFAULT_SPOTIFY_CLIENT_ID = 'a689918def2f448e9632819a8ec289cd'
+
 export const isDev = import.meta.env.DEV
 export const isProd = import.meta.env.PROD
 
@@ -31,7 +34,8 @@ export function isLikelyValidApiOriginUrl(raw) {
 }
 
 export const env = {
-  spotifyClientId: import.meta.env.VITE_SPOTIFY_CLIENT_ID || '',
+  /** Browser PKCE + paste flows. Netlify must use VITE_SPOTIFY_CLIENT_ID (plain SPOTIFY_CLIENT_ID is not read by Vite). */
+  spotifyClientId: String(import.meta.env.VITE_SPOTIFY_CLIENT_ID || DEFAULT_SPOTIFY_CLIENT_ID).trim(),
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
