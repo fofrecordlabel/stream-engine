@@ -8,7 +8,7 @@ export function formatTrackMetadataError(status, serverMessage) {
   if (status === 404) {
     return (
       'Could not reach the track service (404). ' +
-      'Confirm Netlify proxies /api to your Render API and that VITE_API_ORIGIN matches the live API URL, then redeploy. ' +
+      'Set VITE_API_ORIGIN on Netlify to your Render API base URL (no trailing slash), redeploy, and ensure Render has APP_URL / CORS_ALLOW_ORIGINS for this site. ' +
       'See DEPLOY.txt for the checklist.'
     )
   }

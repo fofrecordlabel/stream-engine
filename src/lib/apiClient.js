@@ -30,11 +30,16 @@ function collectApiUrls(path) {
     if (u && !urls.includes(u)) urls.push(u)
   }
   const remote = import.meta.env.VITE_API_ORIGIN
-  /* Production: same-origin `/api/*` first (Netlify proxy → Render). Then direct API origin as fallback. */
+  /*
+   * Production (Netlify + Render): call `VITE_API_ORIGIN` first.
+   * Netlify’s `/api/*` proxy is optional; if it is missing or returns 404, same-origin would fail
+   * even though Render is up. Render must allow this site in CORS (APP_URL / CORS_ALLOW_ORIGINS).
+   * Localhost / preview: same-origin or Vite proxy first, then absolute origin if set.
+   */
   const prodSplitHost = import.meta.env.PROD && !!remote && !isBrowserLocalhost()
   if (prodSplitHost) {
-    add(p)
     add(apiUrl(p))
+    add(p)
   } else {
     add(p)
     if (remote) add(apiUrl(p))

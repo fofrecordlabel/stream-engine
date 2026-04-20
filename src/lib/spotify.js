@@ -154,12 +154,20 @@ export async function searchSpotifyTracks(query, limit = 10) {
     const res = await apiFetch(`/api/spotify/search?q=${encodeURIComponent(q)}&limit=${limit}`)
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
+      const expressNoRoute =
+        res.status === 404 &&
+        d &&
+        typeof d === 'object' &&
+        d.error === 'Not found' &&
+        typeof d.path === 'string'
       return {
         tracks: [],
         searchConfigured: true,
         hint:
           res.status === 404
-            ? 'Search API not found. Confirm Netlify proxies /api to your Render service, then redeploy.'
+            ? expressNoRoute
+              ? `API is up but no route for ${d.path}. Deploy the latest Render service from this repo.`
+              : 'Search returned 404. Confirm VITE_API_ORIGIN on Netlify matches your Render API URL, redeploy, and check Render has SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET.'
             : `Search could not complete (${res.status}). Paste a Spotify track link below, or try again.`,
       }
     }
