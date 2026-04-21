@@ -30,7 +30,14 @@ export default function HomePage({ setPage }) {
 
   const startCampaign = () => {
     if (isLoggedIn) setPage('artist')
-    else setPage('get-started')
+    else {
+      try {
+        window?.localStorage?.setItem('se_focus_spotify_link', String(Date.now()))
+      } catch {
+        /* ignore */
+      }
+      setPage('home')
+    }
   }
 
   const displayCurators = []

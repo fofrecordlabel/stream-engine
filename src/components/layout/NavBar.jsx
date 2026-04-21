@@ -7,6 +7,8 @@ import { useLang, LANGS } from '../../context/LangContext.jsx'
 import AdminGateModal from '../admin/AdminGateModal.jsx'
 import { isAdminUnlocked } from '../../lib/adminGate.js'
 
+const LS_FOCUS_SPOTIFY_LINK = 'se_focus_spotify_link'
+
 /* ── Submit dropdown items ── */
 function SubmitDropdown({ setPage, onClose, t }) {
   const items = [
@@ -135,6 +137,14 @@ export default function NavBar({ setPage, scrolled = false }) {
   const canSeeAdmin = (role === 'admin') || adminUnlocked
 
   const avatarContent = user?.avatar || (user?.name?.slice(0,2).toUpperCase()) || 'ME'
+  const startWithSpotifyLink = () => {
+    try {
+      window?.localStorage?.setItem(LS_FOCUS_SPOTIFY_LINK, String(Date.now()))
+    } catch {
+      /* ignore */
+    }
+    setPage('home')
+  }
 
   return (
     <>
@@ -324,7 +334,7 @@ export default function NavBar({ setPage, scrolled = false }) {
                 style={{ padding:'8px 16px', fontSize:14, borderRadius:10 }}>
                 {t('logIn')}
               </button>
-              <button className="bp" onClick={() => setPage('get-started')}
+              <button className="bp" onClick={startWithSpotifyLink}
                 style={{ padding:'10px 22px', fontSize:14, borderRadius:11, gap:6 }}>
                 {t('getStarted')} <span className="arr">→</span>
               </button>

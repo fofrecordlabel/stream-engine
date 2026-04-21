@@ -11,6 +11,8 @@ import {
 import { setPendingSubmission, normalizePendingSong } from '../../lib/pendingSubmission.js'
 import ExclusiveLaneOffer from './ExclusiveLaneOffer.jsx'
 
+const LS_FOCUS_SPOTIFY_LINK = 'se_focus_spotify_link'
+
 function SearchIcon({ size = 20, color = 'rgba(255,255,255,.45)' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}>
@@ -59,6 +61,7 @@ function commitLoadedTrack(track, spotifyUrl, toast, setHeroPreview, setHeroSucc
 export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 }) {
   const toast = useToast()
   const loggedInRef = useRef(isLoggedIn)
+  const inputRef = useRef(null)
   useEffect(() => {
     loggedInRef.current = isLoggedIn
   }, [isLoggedIn])
@@ -84,6 +87,26 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
   const isUrl = isSpotifyTrackUrl(trimmed)
   const pasteTrimmed = pasteLink.trim()
   const pasteIsTrackUrl = isSpotifyTrackUrl(pasteTrimmed)
+
+  const focusMain = useCallback(() => {
+    try {
+      inputRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    } catch {
+      /* no-op */
+    }
+    inputRef.current?.focus?.()
+    setFocused(true)
+  }, [])
+
+  // One-time “Get Started” focus from nav / CTAs.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const v = window.localStorage?.getItem(LS_FOCUS_SPOTIFY_LINK)
+    if (!v) return
+    window.localStorage?.removeItem(LS_FOCUS_SPOTIFY_LINK)
+    const t = setTimeout(() => focusMain(), 50)
+    return () => clearTimeout(t)
+  }, [focusMain])
 
   useEffect(() => {
     urlPeekRef.current = urlPeek
@@ -341,6 +364,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
             )}
           </div>
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => {
@@ -757,7 +781,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
             className="bp"
             onClick={() => {
               if (isUrl) runUrlAction(trimmed)
-              else setPage('get-started')
+              else focusMain()
             }}
             style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 130 }}
           >
