@@ -118,9 +118,24 @@ async function syncSubscriptionTierFromStripeSubscription(subscription) {
 }
 
 function getStripe() {
-  const key = getServerEnv('STRIPE_SECRET_KEY')
+  const key = String(getServerEnv('STRIPE_SECRET_KEY') || '').trim()
   if (!key) return null
   return new Stripe(key, { apiVersion: '2024-06-20' })
+}
+
+/** Stripe Checkout success/cancel URLs + CORS matching. */
+function checkoutAppUrl() {
+  return String(getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL') || '').trim()
+}
+
+function stripeAppUrlBillingError() {
+  const stripe = getStripe()
+  const appUrl = checkoutAppUrl()
+  if (stripe && appUrl) return null
+  const parts = []
+  if (!stripe) parts.push('STRIPE_SECRET_KEY is not set on the API server (add it in Render → Environment — never on Netlify)')
+  if (!appUrl) parts.push('APP_URL is not set on the API server (set to your live site origin, e.g. https://streamengineinc.com)')
+  return `Billing not configured (${parts.join('; ')}). On Netlify use only VITE_STRIPE_PUBLISHABLE_KEY; it must be from the same Stripe account as STRIPE_SECRET_KEY.`
 }
 
 function toCents(usd) {
@@ -477,11 +492,12 @@ app.post('/api/billing/validate-discount', handleValidateDiscount)
  */
 async function handleExclusiveGuestCheckout(req, res) {
   try {
-    const stripe = getStripe()
-    const appUrl = getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL')
-    if (!stripe || !appUrl) {
-      return res.status(503).json({ ok: false, error: 'Billing not configured (Stripe or APP_URL)' })
+    const billingErr = stripeAppUrlBillingError()
+    if (billingErr) {
+      return res.status(503).json({ ok: false, error: billingErr })
     }
+    const stripe = getStripe()
+    const appUrl = checkoutAppUrl()
 
     const { qty, youPayUsd, email, spotifyTrackUrl, name } = req.body || {}
     const q = Math.min(50, Math.max(1, parseInt(String(qty || '1'), 10) || 1))
@@ -545,9 +561,16 @@ async function handleCreateCheckout(req, res) {
   try {
     const stripe = getStripe()
     const supa = getSupabaseAdmin()
-    const appUrl = getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL')
-    if (!stripe || !supa || !appUrl) {
-      return res.status(500).json({ ok: false, error: 'Billing not configured (missing STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY, or APP_URL)' })
+    const appUrl = checkoutAppUrl()
+    if (!stripe || !appUrl) {
+      return res.status(503).json({ ok: false, error: stripeAppUrlBillingError() || 'Billing not configured' })
+    }
+    if (!supa) {
+      return res.status(503).json({
+        ok: false,
+        error:
+          'Billing not configured (SUPABASE_SERVICE_ROLE_KEY missing on the API server — set it in Render alongside STRIPE_SECRET_KEY).',
+      })
     }
 
     const { credits, priceUsd, userId, packId, discountCode, invite } = req.body || {}
@@ -630,16 +653,17 @@ async function handleCreateCheckout(req, res) {
  */
 async function handleCreateSubscriptionCheckout(req, res) {
   try {
-    const stripe = getStripe()
-    const appUrl = getServerEnv('APP_URL', 'VITE_APP_URL') || getServerEnv('PUBLIC_APP_URL')
-    const priceId = (process.env.STRIPE_SUBSCRIPTION_PRICE_ID || '').trim()
-    if (!stripe || !appUrl) {
-      return res.status(500).json({ ok: false, error: 'Billing not configured (Stripe or APP_URL)' })
+    const billingErr = stripeAppUrlBillingError()
+    if (billingErr) {
+      return res.status(503).json({ ok: false, error: billingErr })
     }
+    const stripe = getStripe()
+    const appUrl = checkoutAppUrl()
+    const priceId = (process.env.STRIPE_SUBSCRIPTION_PRICE_ID || '').trim()
     if (!priceId) {
       return res.status(503).json({
         ok: false,
-        error: 'Subscription checkout not configured (set STRIPE_SUBSCRIPTION_PRICE_ID in server/.env)',
+        error: 'Subscription checkout not configured (set STRIPE_SUBSCRIPTION_PRICE_ID on Render)',
       })
     }
     const { userId } = req.body || {}

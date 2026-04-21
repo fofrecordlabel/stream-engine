@@ -23,9 +23,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: APP_URL
-        value: https://streamenginev1.netlify.app
+        value: https://streamengineinc.com,https://streamenginev1.netlify.app
       - key: CORS_ALLOW_ORIGINS
-        value: https://streamenginev1.netlify.app
+        value: https://streamengineinc.com,https://streamenginev1.netlify.app
       - key: SPOTIFY_CLIENT_ID
         value: a689918def2f448e9632819a8ec289cd
       - key: SPOTIFY_CLIENT_SECRET

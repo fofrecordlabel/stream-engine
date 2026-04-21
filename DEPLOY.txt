@@ -25,10 +25,15 @@ You still must add SECRETS once on the API host (they must not be committed to G
     SPOTIFY_CLIENT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
     SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, (+ optional OPENAI_API_KEY, STRIPE_SUBSCRIPTION_PRICE_ID)
 
+Stripe keys must be from the SAME account: in Stripe Dashboard → Developers → API keys, copy
+  Restricted or standard secret → STRIPE_SECRET_KEY on Render only.
+  Publishable key → VITE_STRIPE_PUBLISHABLE_KEY on Netlify only (rebuild after change).
+  If checkout fails after “session created”, the publishable key is usually from a different Stripe account than the secret.
+
 If the site shows “demo mode” or Supabase never connects: confirm VITE_SUPABASE_ANON_KEY is set on Netlify and redeploy.
 Optional: npx netlify-cli env:import .env (from a machine that has a complete .env).
 
-If your Netlify URL is not streamenginev1.netlify.app, edit netlify.toml (VITE_APP_URL) and render.yaml (APP_URL + CORS_ALLOW_ORIGINS).
+Production domain is https://streamengineinc.com (netlify.toml VITE_APP_URL + render.yaml APP_URL / CORS_ALLOW_ORIGINS include it and the Netlify default hostname). Edit those files if your live origin changes.
 
 If your Render service URL differs from what you first guessed, set VITE_API_ORIGIN on Netlify to that URL and redeploy (the Netlify /api proxy is rebuilt from this variable each build).
 

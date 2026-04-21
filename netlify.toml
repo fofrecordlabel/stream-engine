@@ -14,7 +14,7 @@
   # Spotify Client ID (public; shipped in the browser bundle).
   VITE_SPOTIFY_CLIENT_ID = "a689918def2f448e9632819a8ec289cd"
   # Your Netlify site (Stripe success/cancel + OAuth redirect). Edit if the site name changes.
-  VITE_APP_URL = "https://streamenginev1.netlify.app"
+  VITE_APP_URL = "https://streamengineinc.com"
   # VITE_API_ORIGIN: set in Netlify → Site configuration → Environment variables (Build + Run).
   # Must be your live Render web service URL, e.g. https://<service-name>.onrender.com (verify in a browser: GET /health returns JSON).
   # public/_redirects /api proxy is generated at build from this value (see scripts/emit-netlify-redirects.mjs).
