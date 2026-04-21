@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
-import { BrandMark } from '../components/common/Logo.jsx'
+import { BrandMark, STREAM_ENGINE_LOGO_SRC } from '../components/common/Logo.jsx'
 import { Dot, SectionLabel, VerifiedMark, CreditPill } from '../components/common/Atoms.jsx'
 import HeroSpotifySearch from '../components/home/HeroSpotifySearch.jsx'
 import { GENRES, FAQS_DATA } from '../data/index.js'
@@ -46,6 +46,19 @@ export default function HomePage({ setPage }) {
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none', opacity: 0.85 }} />
         <div className="se-shell" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
           <div style={{ maxWidth: 'min(760px, 100%)', width: '100%', margin: '0 auto', boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <img
+              src={STREAM_ENGINE_LOGO_SRC}
+              alt="StreamEngine"
+              style={{
+                display: 'block',
+                width: 'min(280px, 88vw)',
+                height: 'auto',
+                maxHeight: 112,
+                objectFit: 'contain',
+                marginBottom: 20,
+                filter: 'drop-shadow(0 12px 40px rgba(0,0,0,.45))',
+              }}
+            />
             <div className="fu1" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 18px 7px 9px', borderRadius: 30, background: `linear-gradient(135deg,${T.gnGl},rgba(255,255,255,.03))`, border: `1px solid ${T.gnB}`, boxShadow: '0 12px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(127,255,0,.08) inset', marginBottom: 22 }}>
               <span style={{ background: `linear-gradient(135deg,${T.gn},#5ac800)`, color: '#000', fontWeight: 900, fontSize: 9.5, padding: '3px 9px', borderRadius: 20, letterSpacing: '.05em', boxShadow: '0 0 16px rgba(127,255,0,.35)' }}>LIVE</span>
               <Dot size={5} pulse />

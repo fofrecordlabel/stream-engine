@@ -466,7 +466,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                 <button
                   type="button"
                   disabled={loadingTrack}
-                  aria-label={isLoggedIn ? 'Load track and continue' : 'Sign in and continue with this track'}
+                  aria-label={isLoggedIn ? 'Submit track and continue' : 'Submit track and sign in to continue'}
                   onClick={() => runUrlAction(trimmed)}
                   style={{
                     display: 'flex',
