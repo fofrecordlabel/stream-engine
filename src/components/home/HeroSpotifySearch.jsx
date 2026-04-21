@@ -461,13 +461,29 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
               }}
             >
               {isUrl ? (
-                <div
+                <button
+                  type="button"
+                  disabled={loadingTrack}
+                  aria-label={isLoggedIn ? 'Load track and continue' : 'Sign in and continue with this track'}
+                  onClick={() => runUrlAction(trimmed)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 14,
                     padding: '12px 16px',
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 'none',
                     borderBottom: '1px solid rgba(0,0,0,.06)',
+                    background: '#fff',
+                    cursor: loadingTrack ? 'wait' : 'pointer',
+                    transition: 'background .15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loadingTrack) e.currentTarget.style.background = 'rgba(124,58,237,.06)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#fff'
                   }}
                 >
                   {urlPeek?.loading ? (
@@ -505,10 +521,13 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                       {urlPeek?.title?.trim() || 'Track preview'}
                     </div>
                     <div style={{ fontSize: 12.5, color: '#5c6570' }}>
-                      {urlPeek?.artist?.trim() ? `By ${urlPeek.artist}` : isLoggedIn ? 'Press Go to load into Playlist Push.' : 'Press Go to sign in and continue.'}
+                      {urlPeek?.artist?.trim()
+                        ? `By ${urlPeek.artist} · `
+                        : ''}
+                      {isLoggedIn ? 'Click anywhere here or Go to load into Playlist Push.' : 'Click anywhere here or Go to sign in and continue.'}
                     </div>
                   </div>
-                </div>
+                </button>
               ) : null}
               {!isUrl && trimmed.length < 2 ? (
                 <div style={{ padding: '12px 14px', fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>

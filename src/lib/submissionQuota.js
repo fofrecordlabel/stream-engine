@@ -20,9 +20,12 @@ export function getArtistWeeklySubmissionCap(account) {
   return FREE_WEEKLY_SUBMISSION_CAP
 }
 
+/** Statuses that never count toward the weekly cap (drafts / not launched). */
+const EXCLUDE_FROM_WEEKLY_CAP = new Set(['draft'])
+
 /**
- * Count campaigns with `created_at` on or after local Monday 00:00:00 for the current week.
- * Week boundary: Monday 12:00 AM (00:00) through Sunday end-of-day, viewer's local timezone.
+ * Count Playlist Push campaigns created this local week (Mon 00:00 → now).
+ * Excludes drafts and non-playlist campaign types so TikTok/influencer rows do not consume the cap.
  */
 export function countCampaignsSinceLocalWeekMonday(campaigns) {
   if (!Array.isArray(campaigns)) return 0
@@ -33,6 +36,11 @@ export function countCampaignsSinceLocalWeekMonday(campaigns) {
   const t0 = monday.getTime()
   return campaigns.filter((c) => {
     const t = new Date(c.created_at || c.createdAt || 0).getTime()
-    return Number.isFinite(t) && t >= t0
+    if (!Number.isFinite(t) || t < t0) return false
+    const st = String(c.status || '').toLowerCase().trim()
+    if (EXCLUDE_FROM_WEEKLY_CAP.has(st)) return false
+    const ctype = String(c.campaign_type || 'playlist').toLowerCase().trim()
+    if (ctype !== 'playlist') return false
+    return true
   }).length
 }

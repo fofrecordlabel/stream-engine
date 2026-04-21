@@ -24,6 +24,7 @@ import { CheckoutSuccessPage, CheckoutCancelPage } from './pages/CheckoutStatusP
 import { isDemo } from './lib/supabase.js'
 import { isProd } from './lib/env.js'
 import SupabaseRequiredScreen from './components/SupabaseRequiredScreen.jsx'
+import GlobalSeo from './components/GlobalSeo.jsx'
 
 /* ── Public pages (no auth required) ── */
 const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','subscriptions','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
@@ -307,6 +308,7 @@ export default function App() {
       <LangProvider>
         <AuthProvider>
           <ToastProvider>
+            <GlobalSeo />
             <AppInner />
           </ToastProvider>
         </AuthProvider>
