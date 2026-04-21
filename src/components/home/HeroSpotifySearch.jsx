@@ -82,6 +82,8 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
   const blurTimer = useRef(null)
   const trimmed = query.trim()
   const isUrl = isSpotifyTrackUrl(trimmed)
+  const pasteTrimmed = pasteLink.trim()
+  const pasteIsTrackUrl = isSpotifyTrackUrl(pasteTrimmed)
 
   useEffect(() => {
     urlPeekRef.current = urlPeek
@@ -425,7 +427,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
               opacity: loadingTrack ? 0.7 : 1,
             }}
           >
-            {loadingTrack ? '…' : 'Go'} →
+            {loadingTrack ? '…' : isUrl ? 'Submit' : 'Go'} →
           </button>
         </div>
 
@@ -524,7 +526,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                       {urlPeek?.artist?.trim()
                         ? `By ${urlPeek.artist} · `
                         : ''}
-                      {isLoggedIn ? 'Click anywhere here or Go to load into Playlist Push.' : 'Click anywhere here or Go to sign in and continue.'}
+                      {isLoggedIn ? 'Click anywhere here or Submit to load into Playlist Push.' : 'Click anywhere here or Submit to sign in and continue.'}
                     </div>
                   </div>
                 </button>
@@ -655,7 +657,13 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
                 }}
                 style={{ width: '100%', marginTop: 10, padding: '10px 14px', fontSize: 13, borderRadius: 10, justifyContent: 'center' }}
               >
-                {isLoggedIn ? 'Load pasted link →' : 'Continue with link →'}
+                {pasteIsTrackUrl
+                  ? isLoggedIn
+                    ? 'Submit pasted link →'
+                    : 'Submit to continue →'
+                  : isLoggedIn
+                    ? 'Load pasted link →'
+                    : 'Continue with link →'}
               </button>
             </div>
           </div>
@@ -753,7 +761,7 @@ export default function HeroSpotifySearch({ setPage, isLoggedIn, maxWidth = 620 
             }}
             style={{ flex: 1, padding: '14px 22px', fontSize: 15.5, minWidth: 130 }}
           >
-            {isUrl ? (isLoggedIn ? 'Load track & continue' : 'Sign in & send to playlists') : 'Get Started'}{' '}
+            {isUrl ? (isLoggedIn ? 'Submit & continue' : 'Submit & sign in') : 'Get Started'}{' '}
             <span className="arr">→</span>
           </button>
         )}
