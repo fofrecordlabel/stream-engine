@@ -297,7 +297,7 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
     setSubBusy(true)
     try {
       const m = await import('../lib/stripe.js')
-      if (!m.isStripeConfigured) {
+      if (!m.isStripeConfigured()) {
         toast.error(
           isDev ? 'Add VITE_STRIPE_PUBLISHABLE_KEY to your .env.' : 'Stripe is not configured (add VITE_STRIPE_PUBLISHABLE_KEY in Netlify and redeploy).',
           'Stripe',

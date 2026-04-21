@@ -3,7 +3,11 @@ import { apiFetch } from './apiClient.js'
 import { env } from './env.js'
 
 const PUBLISHABLE_KEY = env.stripePublishableKey
-export const isStripeConfigured = !!PUBLISHABLE_KEY
+
+/** True when `VITE_STRIPE_PUBLISHABLE_KEY` is set (Stripe.js / Checkout can load). */
+export function isStripeConfigured() {
+  return !!PUBLISHABLE_KEY
+}
 
 let stripePromise = null
 export function getStripe() {

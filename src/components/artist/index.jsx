@@ -614,7 +614,7 @@ export function BuyCreditsModal({ onClose, onBuy, currentCredits, needed, userId
   const buy = async (pack) => {
     try {
       const { isStripeConfigured, getStripe, createCheckoutSession } = await import('../../lib/stripe.js')
-      if (!isStripeConfigured) {
+      if (!isStripeConfigured()) {
         toast.error(
           isDev ? 'Add VITE_STRIPE_PUBLISHABLE_KEY to your root .env.' : 'Stripe is not configured (add VITE_STRIPE_PUBLISHABLE_KEY in Netlify and redeploy).',
           'Stripe not configured',
@@ -1365,7 +1365,7 @@ export function BillingSection({ wallet, setWallet }) {
     setSubBusy(true)
     try {
       const m = await import('../../lib/stripe.js')
-      if (!m.isStripeConfigured) {
+      if (!m.isStripeConfigured()) {
         toast.error(
           isDev ? 'Add VITE_STRIPE_PUBLISHABLE_KEY to your .env.' : 'Stripe is not configured (add VITE_STRIPE_PUBLISHABLE_KEY in Netlify and redeploy).',
           'Stripe',

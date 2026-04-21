@@ -38,7 +38,7 @@ export const env = {
   spotifyClientId: String(import.meta.env.VITE_SPOTIFY_CLIENT_ID || DEFAULT_SPOTIFY_CLIENT_ID).trim(),
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-  stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+  stripePublishableKey: String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim(),
   /** API origin, no trailing slash (e.g. https://your-service.onrender.com) */
   apiOrigin: (import.meta.env.VITE_API_ORIGIN || '').replace(/\/$/, ''),
   /** Public site URL for OAuth / redirects when it matches current origin */
