@@ -12,7 +12,7 @@ import { isSpotifyConnected } from '../lib/spotifyAuth.js'
 import { clearPendingSubmission, getPendingSubmission, normalizePendingSong } from '../lib/pendingSubmission.js'
 import { fetchSpotifyTrack, accentFromGenre } from '../lib/spotify.js'
 import { hasBlockingActiveCampaignForSong } from '../lib/dedupeRules.js'
-import { countCampaignsSinceLocalWeekMonday, getArtistWeeklySubmissionCap } from '../lib/submissionQuota.js'
+import { countCampaignsSinceUtcWeekMonday, getArtistWeeklySubmissionCap } from '../lib/submissionQuota.js'
 
 const NAV = [
   { id:"songs",       icon:"🎵", label:"My Songs",   coach:"coach-songs" },
@@ -44,7 +44,7 @@ function AccountSummary({ user, role, credits, songs, campaigns, onUpgrade }) {
   const approved = campaigns?.filter(c => c.status === 'approved').length ?? 0
   const pending  = campaigns?.filter(c => c.status === 'pending').length  ?? 0
   const submissionsMax = getArtistWeeklySubmissionCap(user)
-  const submissionsUsed = countCampaignsSinceLocalWeekMonday(campaigns || [])
+  const submissionsUsed = countCampaignsSinceUtcWeekMonday(campaigns || [])
   const submissionsRemaining = Math.max(0, submissionsMax - submissionsUsed)
   const weeklyCapLabel = subTier === 'free' ? 'free ' : ''
 
@@ -396,10 +396,10 @@ export default function ArtistDashboard({ setPage }) {
     }
 
     const weeklyCap = getArtistWeeklySubmissionCap(user)
-    const weeklyUsed = countCampaignsSinceLocalWeekMonday(campaigns || [])
+    const weeklyUsed = countCampaignsSinceUtcWeekMonday(campaigns || [])
     if (weeklyUsed >= weeklyCap) {
       toast.error(
-        `Weekly limit reached (${weeklyCap} Playlist Push campaigns per local week, resets Monday 12:00 AM). Upgrade for a higher cap or try again next week.`,
+        `Weekly limit reached (${weeklyCap} Playlist Push campaigns per week, resets Monday 00:00 UTC). Upgrade for a higher cap or try again next week.`,
         'Weekly limit',
       )
       return
@@ -417,11 +417,14 @@ export default function ArtistDashboard({ setPage }) {
       })
       if (cr?.error) {
         const dup = cr.code === 'DUPLICATE_ACTIVE_CAMPAIGN' || cr.error?.code === 'DUPLICATE_ACTIVE_CAMPAIGN'
+        const cap = cr.code === 'WEEKLY_CAP_REACHED' || cr.error?.code === 'WEEKLY_CAP_REACHED' || String(cr.error?.message || '').includes('WEEKLY_CAP_REACHED')
         toast.error(
           dup
             ? 'This song already has an active submission.'
-            : (cr.error?.message || 'Could not create campaign.'),
-          dup ? 'Already submitted' : 'Error',
+            : cap
+              ? 'Weekly submission limit reached (resets Monday 00:00 UTC).'
+              : (cr.error?.message || 'Could not create campaign.'),
+          dup ? 'Already submitted' : cap ? 'Weekly limit' : 'Error',
         )
         return
       }

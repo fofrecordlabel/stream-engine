@@ -80,6 +80,11 @@ export function useCampaigns(userId, role = 'artist') {
     if (error || !camp) {
       const msg = String(error?.message || '')
       const code = error?.code
+      if (msg.includes('WEEKLY_CAP_REACHED')) {
+        const err = new Error('WEEKLY_CAP_REACHED')
+        err.code = 'WEEKLY_CAP_REACHED'
+        return { data: null, error: err, code: 'WEEKLY_CAP_REACHED' }
+      }
       if (code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
         const err = new Error('DUPLICATE_ACTIVE_CAMPAIGN')
         err.code = 'DUPLICATE_ACTIVE_CAMPAIGN'

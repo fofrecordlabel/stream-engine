@@ -1,4 +1,4 @@
-/** Free tier: Playlist Push campaigns per local week (Monday 00:00 → Sunday 23:59). */
+/** Free tier: Playlist Push campaigns per week (reset Monday 00:00 UTC). */
 export const FREE_WEEKLY_SUBMISSION_CAP = 10
 
 /** Pro subscription weekly cap (product copy targets ~$30/mo). */
@@ -23,17 +23,22 @@ export function getArtistWeeklySubmissionCap(account) {
 /** Statuses that never count toward the weekly cap (drafts / not launched). */
 const EXCLUDE_FROM_WEEKLY_CAP = new Set(['draft'])
 
+/** UTC week start (Monday 00:00 UTC). */
+export function utcWeekStartMs(now = new Date()) {
+  // Convert to a "UTC calendar date", then find Monday 00:00 UTC.
+  const dow = now.getUTCDay() // 0..6 (Sun..Sat)
+  const daysFromMonday = dow === 0 ? 6 : dow - 1
+  const mondayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysFromMonday, 0, 0, 0, 0))
+  return mondayUtc.getTime()
+}
+
 /**
- * Count Playlist Push campaigns created this local week (Mon 00:00 → now).
+ * Count Playlist Push campaigns created since UTC week start.
  * Excludes drafts and non-playlist campaign types so TikTok/influencer rows do not consume the cap.
  */
-export function countCampaignsSinceLocalWeekMonday(campaigns) {
+export function countCampaignsSinceUtcWeekMonday(campaigns) {
   if (!Array.isArray(campaigns)) return 0
-  const now = new Date()
-  const dow = now.getDay()
-  const daysFromMonday = dow === 0 ? 6 : dow - 1
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMonday, 0, 0, 0, 0)
-  const t0 = monday.getTime()
+  const t0 = utcWeekStartMs(new Date())
   return campaigns.filter((c) => {
     const t = new Date(c.created_at || c.createdAt || 0).getTime()
     if (!Number.isFinite(t) || t < t0) return false

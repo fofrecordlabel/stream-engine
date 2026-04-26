@@ -16,7 +16,7 @@ import { isStripeConfigured } from '../lib/stripe.js'
 import { apiFetch } from '../lib/apiClient.js'
 import { useCampaigns } from '../hooks/useCampaigns.js'
 import {
-  countCampaignsSinceLocalWeekMonday,
+  countCampaignsSinceUtcWeekMonday,
   FREE_WEEKLY_SUBMISSION_CAP,
   PRO_WEEKLY_SUBMISSION_CAP,
   PREMIUM_WEEKLY_SUBMISSION_CAP,
@@ -327,7 +327,7 @@ function WalletSettings({ user, credits, role, setPage, campaigns, campaignsLoad
   const planLabel =
     isCuratorRole ? 'Curator' : role === 'admin' ? 'Admin' : subTier === 'pro' ? 'Pro' : subTier === 'premium' ? 'Premium' : 'Free'
   const subMax = role === 'artist' ? getArtistWeeklySubmissionCap(user) : FREE_WEEKLY_SUBMISSION_CAP
-  const submissionsUsed = role === 'artist' ? countCampaignsSinceLocalWeekMonday(campaigns || []) : 0
+  const submissionsUsed = role === 'artist' ? countCampaignsSinceUtcWeekMonday(campaigns || []) : 0
   const submissionsRemaining = Math.max(0, subMax - submissionsUsed)
 
   const PLANS = [
