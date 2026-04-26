@@ -1,3 +1,11 @@
+node_modules
+dist
+.DS_Store
+
+# Playwright artifacts
+playwright-report
+test-results
+
 # Dependencies
 node_modules/
 

@@ -20,12 +20,14 @@ function SubmitDropdown({ setPage, onClose, t }) {
   ]
   return (
     <div
+      role="menu"
+      aria-label="Submit menu"
       style={{ position:'absolute', top:'calc(100% + 10px)', left:'50%', transform:'translateX(-50%)',
                background:'#0f0f14', border:`1px solid ${T.b1}`, borderRadius:14, padding:8,
                width:290, zIndex:500, boxShadow:'0 24px 60px rgba(0,0,0,.8)', animation:'scaleIn .16s ease' }}
       onMouseLeave={onClose}>
       {items.map(it => (
-        <button key={it.label} ref={!firstRef.current ? firstRef : undefined} onClick={() => { setPage(it.page); onClose(); }}
+        <button key={it.label} role="menuitem" type="button" ref={!firstRef.current ? firstRef : undefined} onClick={() => { setPage(it.page); onClose(); }}
           style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'11px 13px',
                    borderRadius:10, background:'none', border:'none', cursor:'pointer', textAlign:'left',
                    transition:'background .12s' }}
@@ -238,6 +240,9 @@ export default function NavBar({ setPage, scrolled = false }) {
                   e.preventDefault()
                   setSubmitOpen(true)
                 }
+              }}
+              onBlur={(e) => {
+                if (!submitRef.current?.contains(e.relatedTarget)) setSubmitOpen(false)
               }}
               style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:10,
                        background: submitOpen ? 'rgba(255,255,255,.06)' : 'none', border:'none',
