@@ -8,6 +8,7 @@ import { GENRES, FAQS_DATA } from '../data/index.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { clearGuestPendingOncePerBrowserSession } from '../lib/pendingSubmission.js'
 import { supabase, isDemo } from '../lib/supabase.js'
+import { SkeletonCuratorCard } from '../components/common/Skeleton.jsx'
 
 export default function HomePage({ setPage }) {
   const { isLoggedIn, loading } = useAuth()
@@ -15,6 +16,7 @@ export default function HomePage({ setPage }) {
   const [genre, setGenre] = useState('All')
   const [openFaq, setOpenFaq] = useState(null)
   const [displayCurators, setDisplayCurators] = useState([])
+  const [curatorsLoading, setCuratorsLoading] = useState(false)
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60)
@@ -35,6 +37,7 @@ export default function HomePage({ setPage }) {
     }
     let cancelled = false
     ;(async () => {
+      setCuratorsLoading(true)
       const { data, error } = await supabase
         .from('curator_profiles')
         .select('id, display_name, artwork, color, verified, genres, follower_count, response_rate, price_credits, open_for_submissions')
@@ -44,6 +47,7 @@ export default function HomePage({ setPage }) {
       if (cancelled) return
       if (error || !data) {
         setDisplayCurators([])
+        setCuratorsLoading(false)
         return
       }
       setDisplayCurators(
@@ -60,6 +64,7 @@ export default function HomePage({ setPage }) {
           credits: row.price_credits ?? 2,
         })),
       )
+      setCuratorsLoading(false)
     })()
     return () => {
       cancelled = true
@@ -212,41 +217,46 @@ export default function HomePage({ setPage }) {
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
-            {filteredCurators.map((c) => (
-              <div
-                key={c.id}
-                onClick={startCampaign}
-                style={{ background: `linear-gradient(145deg,${T.card},#0d0d10)`, border: `1px solid ${T.b0}`, borderRadius: 14, padding: '16px 15px', cursor: 'pointer', transition: 'all .2s' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = T.b1
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = T.b0
-                  e.currentTarget.style.transform = 'none'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 11 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}22`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{c.artwork}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-                      <span style={{ fontWeight: 700, fontSize: 13.5, color: T.w, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                      {c.verified ? <VerifiedMark size={13} /> : null}
+            {curatorsLoading
+              ? Array.from({ length: 12 }).map((_, i) => <SkeletonCuratorCard key={`sk_${i}`} />)
+              : filteredCurators.map((c) => (
+                <div
+                  key={c.id}
+                  onClick={startCampaign}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startCampaign() }}
+                  style={{ background: `linear-gradient(145deg,${T.card},#0d0d10)`, border: `1px solid ${T.b0}`, borderRadius: 14, padding: '16px 15px', cursor: 'pointer', transition: 'all .2s', outline: 'none' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = T.b1
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = T.b0
+                    e.currentTarget.style.transform = 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 11 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}22`, border: `1px solid ${c.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{c.artwork}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                        <span style={{ fontWeight: 700, fontSize: 13.5, color: T.w, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                        {c.verified ? <VerifiedMark size={13} /> : null}
+                      </div>
+                      <span className="chip cb" style={{ fontSize: 10, padding: '1px 7px' }}>
+                        {c.genre}
+                      </span>
                     </div>
-                    <span className="chip cb" style={{ fontSize: 10, padding: '1px 7px' }}>
-                      {c.genre}
-                    </span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: T.g200, marginBottom: 10 }}>{c.followers} followers</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 11.5, color: T.g300 }}>{c.responseRate}% response</div>
+                    <CreditPill n={c.credits} />
                   </div>
                 </div>
-                <div style={{ fontSize: 11.5, color: T.g200, marginBottom: 10 }}>{c.followers} followers</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11.5, color: T.g300 }}>{c.responseRate}% response</div>
-                  <CreditPill n={c.credits} />
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
-          {filteredCurators.length === 0 ? (
+          {!curatorsLoading && filteredCurators.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '42px 18px', border: `1px dashed ${T.b1}`, borderRadius: 16, color: T.g300, marginTop: 10 }}>
               <div style={{ fontSize: 34, marginBottom: 10 }}>🎧</div>
               <div style={{ fontWeight: 800, fontSize: 14.5, marginBottom: 6 }}>Curator marketplace is coming soon</div>

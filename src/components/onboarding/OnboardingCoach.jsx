@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { T } from '../../tokens.js'
 
 /**
@@ -12,6 +12,8 @@ import { T } from '../../tokens.js'
 export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, onDismiss }) {
   const [rect, setRect] = useState(null)
   const step = steps?.[stepIndex]
+  const nextRef = useRef(null)
+  const lastFocusedRef = useRef(null)
 
   useEffect(() => {
     if (!active || !step?.selector) {
@@ -39,12 +41,31 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
     }
   }, [active, step?.selector, stepIndex])
 
+  useEffect(() => {
+    if (!active) return
+    lastFocusedRef.current = document.activeElement
+    const t = window.setTimeout(() => nextRef.current?.focus?.(), 0)
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onDismiss?.()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.clearTimeout(t)
+      document.removeEventListener('keydown', onKeyDown)
+      const el = lastFocusedRef.current
+      if (el && typeof el.focus === 'function') el.focus()
+    }
+  }, [active, onDismiss])
+
   if (!active || !step || stepIndex >= steps.length) return null
 
   const isLast = stepIndex >= steps.length - 1
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 12000, pointerEvents: 'auto' }}>
+    <div role="dialog" aria-modal="true" aria-label="Onboarding tour" style={{ position: 'fixed', inset: 0, zIndex: 12000, pointerEvents: 'auto' }}>
       {/* Dim everything except optional spotlight ring */}
       <div
         style={{
@@ -53,6 +74,7 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
           background: rect ? 'rgba(0,0,0,.72)' : 'rgba(0,0,0,.78)',
           backdropFilter: 'blur(2px)',
         }}
+        onMouseDown={() => onDismiss?.()}
       />
       {rect && rect.width > 0 && (
         <div
@@ -97,6 +119,7 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
           <button
             type="button"
             className="bp"
+            ref={nextRef}
             onClick={() => (isLast ? onDismiss() : onSetStep(stepIndex + 1))}
             style={{ padding: '9px 16px', fontSize: 13 }}
           >

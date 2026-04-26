@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
+import Modal from '../components/common/Modal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase, isDemo, supabaseConfigErrorMessage } from '../lib/supabase.js'
 
@@ -682,61 +683,46 @@ export default function PlaylistTraderPage({ setPage }) {
       </div>
 
       {/* Offer modal */}
-      {proofModal && (
-        <div
-          role="presentation"
-          onClick={() => (loading ? null : setProofModal(null))}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', backdropFilter: 'blur(14px)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-        >
-          <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 96vw)', background: `linear-gradient(145deg,${T.card},#0d0d10)`, border: `1px solid ${T.b1}`, borderRadius: 20, padding: '22px 18px' }}>
-            <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Post delivery proof</div>
-            <div style={{ fontSize: 12.5, color: T.g300, lineHeight: 1.6, marginBottom: 12 }}>Paste a Spotify playlist/track link or a short note. This is shown to the artist.</div>
-            <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }} value={proofText} onChange={(e) => setProofText(e.target.value)} placeholder="https://open.spotify.com/..." />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button type="button" className="bt" disabled={loading} onClick={() => setProofModal(null)} style={{ padding: '10px 14px', fontSize: 13 }}>Cancel</button>
-              <button type="button" className="bp" disabled={loading || !proofText.trim()} onClick={() => void submitProof(proofModal, proofText)} style={{ padding: '10px 14px', fontSize: 13 }}>
-                Submit & mark delivered →
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={!!proofModal}
+        title="Post delivery proof"
+        description="Paste a Spotify playlist/track link or a short note. This is shown to the artist."
+        onClose={() => (loading ? null : setProofModal(null))}
+        width={520}
+      >
+        <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }} value={proofText} onChange={(e) => setProofText(e.target.value)} placeholder="https://open.spotify.com/..." />
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button type="button" className="bt" disabled={loading} onClick={() => setProofModal(null)} style={{ padding: '10px 14px', fontSize: 13 }}>Cancel</button>
+          <button type="button" className="bp" disabled={loading || !proofText.trim()} onClick={() => void submitProof(proofModal, proofText)} style={{ padding: '10px 14px', fontSize: 13 }}>
+            Submit & mark delivered <span className="arr">→</span>
+          </button>
         </div>
-      )}
+      </Modal>
 
-      {disputeModal && (
-        <div
-          role="presentation"
-          onClick={() => (loading ? null : setDisputeModal(null))}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', backdropFilter: 'blur(14px)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-        >
-          <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 96vw)', background: `linear-gradient(145deg,${T.card},#0d0d10)`, border: `1px solid ${T.b1}`, borderRadius: 20, padding: '22px 18px' }}>
-            <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Open dispute</div>
-            <div style={{ fontSize: 12.5, color: T.g300, lineHeight: 1.6, marginBottom: 12 }}>Escrow stays held until an admin resolves the case. Summarize what went wrong.</div>
-            <textarea style={{ ...inputStyle, minHeight: 90, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }} value={disputeText} onChange={(e) => setDisputeText(e.target.value)} placeholder="Reason…" />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button type="button" className="bt" disabled={loading} onClick={() => setDisputeModal(null)} style={{ padding: '10px 14px', fontSize: 13 }}>Cancel</button>
-              <button type="button" className="bp" disabled={loading} onClick={() => void submitDisputeRpc(disputeModal)} style={{ padding: '10px 14px', fontSize: 13 }}>
-                Submit dispute →
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={!!disputeModal}
+        title="Open dispute"
+        description="Escrow stays held until an admin resolves the case. Summarize what went wrong."
+        onClose={() => (loading ? null : setDisputeModal(null))}
+        width={520}
+      >
+        <textarea style={{ ...inputStyle, minHeight: 90, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }} value={disputeText} onChange={(e) => setDisputeText(e.target.value)} placeholder="Reason…" />
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button type="button" className="bt" disabled={loading} onClick={() => setDisputeModal(null)} style={{ padding: '10px 14px', fontSize: 13 }}>Cancel</button>
+          <button type="button" className="bp" disabled={loading} onClick={() => void submitDisputeRpc(disputeModal)} style={{ padding: '10px 14px', fontSize: 13 }}>
+            Submit dispute <span className="arr">→</span>
+          </button>
         </div>
-      )}
+      </Modal>
 
       {offerDraft && (
-        <div
-          onClick={() => (loading ? null : setOfferDraft(null))}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', backdropFilter: 'blur(14px)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        <Modal
+          open={!!offerDraft}
+          title="Make an offer"
+          description={`${offerDraft?.title || 'Listing'} · ${offerDraft?.price_credits || ''} credits`}
+          onClose={() => (loading ? null : setOfferDraft(null))}
+          width={560}
         >
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: `linear-gradient(145deg,${T.card},#0d0d10)`, border: `1px solid ${T.b1}`, borderRadius: 20, padding: '22px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 4 }}>Make an offer</div>
-                <div style={{ fontSize: 12.5, color: T.g300, lineHeight: 1.6 }}>
-                  <strong style={{ color: T.w }}>{offerDraft.title}</strong> · {offerDraft.price_credits} credits
-                </div>
-              </div>
-              <button className="bt" onClick={() => setOfferDraft(null)} style={{ padding: '8px 10px', fontSize: 13 }}>✕</button>
-            </div>
 
             {canCreateOffers ? (
               <>
@@ -771,8 +757,7 @@ export default function PlaylistTraderPage({ setPage }) {
                 Artist accounts can send offers. Switch roles or sign in.
               </div>
             )}
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

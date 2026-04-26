@@ -12,6 +12,8 @@ const LS_FOCUS_SPOTIFY_LINK = 'se_focus_spotify_link'
 
 /* ── Submit dropdown items ── */
 function SubmitDropdown({ setPage, onClose, t }) {
+  const firstRef = useRef(null)
+  useEffect(() => { firstRef.current?.focus?.() }, [])
   const items = [
     { icon:'🎵', label: t('submitSong'),     sub: t('submitSongSub'),     page:'submit-song'     },
     { icon:'🎶', label: t('submitPlaylist'), sub: t('submitPlaylistSub'), page:'submit-playlist' },
@@ -23,7 +25,7 @@ function SubmitDropdown({ setPage, onClose, t }) {
                width:290, zIndex:500, boxShadow:'0 24px 60px rgba(0,0,0,.8)', animation:'scaleIn .16s ease' }}
       onMouseLeave={onClose}>
       {items.map(it => (
-        <button key={it.label} onClick={() => { setPage(it.page); onClose(); }}
+        <button key={it.label} ref={!firstRef.current ? firstRef : undefined} onClick={() => { setPage(it.page); onClose(); }}
           style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'11px 13px',
                    borderRadius:10, background:'none', border:'none', cursor:'pointer', textAlign:'left',
                    transition:'background .12s' }}
@@ -114,6 +116,9 @@ export default function NavBar({ setPage, scrolled = false }) {
   const submitRef = useRef(null)
   const userRef   = useRef(null)
   const notifRef  = useRef(null)
+  const submitFirstRef = useRef(null)
+  const userFirstRef = useRef(null)
+  const notifFirstRef = useRef(null)
   const spotifyOk = isSpotifyConnected()
 
   /* close dropdowns on outside click */
@@ -126,6 +131,18 @@ export default function NavBar({ setPage, scrolled = false }) {
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
   }, [])
+
+  /* Escape closes any open menu */
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return
+      if (submitOpen) setSubmitOpen(false)
+      if (userOpen) setUserOpen(false)
+      if (notifOpen) setNotifOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [submitOpen, userOpen, notifOpen])
 
   const loadNotifications = async () => {
     if (isDemo || !supabase || !isLoggedIn) {
@@ -213,7 +230,15 @@ export default function NavBar({ setPage, scrolled = false }) {
           {/* Submit dropdown */}
           <div ref={submitRef} style={{ position:'relative' }}>
             <button
+              aria-haspopup="menu"
+              aria-expanded={submitOpen}
               onClick={() => setSubmitOpen(o => !o)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setSubmitOpen(true)
+                }
+              }}
               style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:10,
                        background: submitOpen ? 'rgba(255,255,255,.06)' : 'none', border:'none',
                        color: submitOpen ? T.w : T.g200, fontSize:14, fontWeight:500, cursor:'pointer', transition:'all .15s' }}

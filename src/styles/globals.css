@@ -17,6 +17,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@keyframes seShimmer {
+  0% { transform: translateX(-60%); }
+  100% { transform: translateX(60%); }
+}
+
 #root {
   min-height: 100vh;
 }
