@@ -65,16 +65,17 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
   const isLast = stepIndex >= steps.length - 1
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Onboarding tour" style={{ position: 'fixed', inset: 0, zIndex: 12000, pointerEvents: 'auto' }}>
+    <div role="dialog" aria-modal="true" aria-label="Onboarding tour" style={{ position: 'fixed', inset: 0, zIndex: 12000, pointerEvents: 'none' }}>
       {/* Dim everything except optional spotlight ring */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: rect ? 'rgba(0,0,0,.72)' : 'rgba(0,0,0,.78)',
-          backdropFilter: 'blur(2px)',
+          // Avoid double-dimming when spotlight is active; spotlight uses boxShadow mask.
+          background: rect ? 'transparent' : 'rgba(0,0,0,.65)',
+          backdropFilter: rect ? 'none' : 'blur(1px)',
+          pointerEvents: 'none',
         }}
-        onMouseDown={() => onDismiss?.()}
       />
       {rect && rect.width > 0 && (
         <div
@@ -85,7 +86,8 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
             width: rect.width + 12,
             height: rect.height + 12,
             borderRadius: 12,
-            boxShadow: '0 0 0 9999px rgba(0,0,0,.72)',
+            // Single dim layer: mask everything except target.
+            boxShadow: '0 0 0 9999px rgba(0,0,0,.58)',
             border: `2px solid ${T.gn}`,
             pointerEvents: 'none',
             transition: 'all .2s ease',
@@ -105,6 +107,7 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
           borderRadius: 16,
           padding: '18px 18px 16px',
           boxShadow: '0 24px 80px rgba(0,0,0,.85)',
+          pointerEvents: 'auto',
         }}
       >
         <div style={{ fontSize: 10, fontWeight: 900, color: T.g300, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 8 }}>
