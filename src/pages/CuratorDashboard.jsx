@@ -2,18 +2,26 @@ import { useState, useEffect } from 'react'
 import { T } from '../tokens.js'
 import { BrandMark } from '../components/common/Logo.jsx'
 import { MobileDrawer } from '../components/layout/Sidebar.jsx'
+import OnboardingCoach from '../components/onboarding/OnboardingCoach.jsx'
 import { CuratorInboxSection, CuratorPlaylistsSection, CuratorHistorySection, CuratorProfileSection } from '../components/curator/index.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { isDemo } from '../lib/supabase.js'
-import { isDev } from '../lib/env.js'
 
 const NAV = [
-  { id:"inbox",     icon:"📥", label:"Inbox"            },
-  { id:"playlists", icon:"🎵", label:"Playlists"        },
-  { id:"history",   icon:"📋", label:"History"          },
-  { id:"profile",   icon:"🎨", label:"Profile"          },
-  { id:"settings",  icon:"⚙",  label:"Settings"         },
-];
+  { id:"inbox",     icon:"📥", label:"Inbox",     coach:"coach-nav-inbox" },
+  { id:"playlists", icon:"🎵", label:"Playlists", coach:"coach-nav-playlists" },
+  { id:"history",   icon:"📋", label:"History" },
+  { id:"profile",   icon:"🎨", label:"Profile",   coach:"coach-nav-profile" },
+  { id:"settings",  icon:"⚙",  label:"Settings" },
+]
+
+const CURATOR_COACH_STEPS = [
+  { selector: '[data-coach="coach-nav-inbox"]', title: 'Submission inbox', body: 'New artist campaigns land here. Accept or pass with structured feedback.' },
+  { selector: '[data-coach="coach-nav-playlists"]', title: 'Playlist slots', body: 'Connect Spotify playlists and set credits so artists can target you accurately.' },
+  { selector: '[data-coach="coach-nav-profile"]', title: 'Public profile', body: 'Complete your curator card — genres, turnaround, and rules build trust with artists.' },
+]
+
+const LS_CURATOR_COACH_DONE = 'se_curator_coach_done'
+const LS_CURATOR_COACH_STEP = 'se_curator_coach_step'
 
 export default function CuratorDashboard({ setPage }) {
   const { user, signOut } = useAuth()
@@ -22,6 +30,8 @@ export default function CuratorDashboard({ setPage }) {
   const [isMobile,     setIsMobile]     = useState(window.innerWidth < 700);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [earnings] = useState({ pending:0, thisMonth:0, total:0 });
+  const [curatorCoachStep, setCuratorCoachStep] = useState(0)
+  const [curatorCoachOff, setCuratorCoachOff] = useState(false)
 
   useEffect(() => {
     const fn = () => setIsMobile(window.innerWidth < 700);
@@ -29,27 +39,47 @@ export default function CuratorDashboard({ setPage }) {
     return () => window.removeEventListener("resize", fn);
   }, []);
 
-  const renderSection = () => {
-    const emptyCopy = {
-      inbox: ['No submissions yet', 'Once your curator account is approved and playlists are connected, submissions will appear here.'],
-      playlists: ['No playlists connected', 'Connect Spotify and add your first playlist to start receiving submissions.'],
-      history: ['No history yet', 'Accepted and completed reviews will appear here once you start reviewing.'],
-      profile: ['Curator profile setup', 'Complete your profile and preferences to get approved.'],
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(LS_CURATOR_COACH_DONE) === '1') setCuratorCoachOff(true)
+      const s = parseInt(sessionStorage.getItem(LS_CURATOR_COACH_STEP) || '0', 10)
+      if (Number.isFinite(s) && s >= 0) setCuratorCoachStep(s)
+    } catch { /* ignore */ }
+  }, [])
+
+  const showCuratorCoach = !curatorCoachOff && curatorCoachStep < CURATOR_COACH_STEPS.length
+
+  const persistCuratorCoachStep = (n) => {
+    try { sessionStorage.setItem(LS_CURATOR_COACH_STEP, String(n)) } catch { /* ignore */ }
+    setCuratorCoachStep(n)
+  }
+
+  const dismissCuratorCoach = () => {
+    try {
+      sessionStorage.setItem(LS_CURATOR_COACH_DONE, '1')
+      sessionStorage.setItem(LS_CURATOR_COACH_STEP, String(CURATOR_COACH_STEPS.length))
+    } catch { /* ignore */ }
+    setCuratorCoachOff(true)
+  }
+
+  const selectNav = (id) => {
+    if (id === 'settings') {
+      setPage('settings')
+      return
     }
-    const [title, desc] = emptyCopy[section] || ['Nothing here yet', 'This section will populate when live curator data is available.']
-    return (
-      <div style={{ background:`linear-gradient(145deg,${T.bg1},${T.bg})`, border:`1px dashed ${T.b1}`, borderRadius:16, padding:'52px 24px', textAlign:'center' }}>
-        <div style={{ fontSize:36, marginBottom:12 }}>🎵</div>
-        <div style={{ fontWeight:800, fontSize:18, color:T.w, marginBottom:6 }}>{title}</div>
-        <div style={{ fontSize:13.5, color:T.g300, maxWidth:420, margin:'0 auto' }}>{desc}</div>
-        {isDev && isDemo && (
-          <div style={{ marginTop:12, fontSize:12.5, color:T.gold, fontWeight:800 }}>
-            Local only: add VITE_SUPABASE_ANON_KEY so inbox and playlists load from your database.
-          </div>
-        )}
-      </div>
-    )
-  };
+    setSection(id)
+  }
+
+  const renderSection = () => {
+    switch (section) {
+      case 'inbox':     return <CuratorInboxSection />
+      case 'playlists': return <CuratorPlaylistsSection />
+      case 'history':   return <CuratorHistorySection />
+      case 'profile':   return <CuratorProfileSection />
+      case 'settings':  return null
+      default: return null
+    }
+  }
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100vh", background:T.bg, color:T.w, width:"100%", overflowX:"hidden" }}>
@@ -64,6 +94,9 @@ export default function CuratorDashboard({ setPage }) {
           <span style={{ fontSize:12, color:T.g300, fontWeight:600, letterSpacing:".03em" }}>Curator</span>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button type="button" className="bt hide-sm" onClick={() => setPage('playlist-trader')} style={{ padding:'7px 12px', fontSize:12.5, borderRadius:9, color:T.g200 }}>
+            Playlist Trader
+          </button>
           <div className="hide-sm" style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 13px", background:"rgba(255,255,255,.04)", border:`1px solid ${T.b0}`, borderRadius:9 }}>
             <span style={{ fontSize:11, color:T.g300, fontWeight:800 }}>Earnings</span>
             <span className="mono" style={{ fontSize:13, color:T.g200 }}>$0.00</span>
@@ -76,6 +109,9 @@ export default function CuratorDashboard({ setPage }) {
             {showUserMenu && (
               <div style={{ position:"absolute", top:40, right:0, background:"#13131a", border:`1px solid ${T.b1}`, borderRadius:11, padding:"6px", minWidth:150, boxShadow:"0 12px 40px rgba(0,0,0,.7)", zIndex:200 }}>
                 <div style={{ padding:"7px 12px 5px", fontSize:11.5, color:T.g300, fontWeight:600, borderBottom:`1px solid ${T.b0}`, marginBottom:4 }}>{user?.name || "Curator"}</div>
+                <button onClick={() => { setShowUserMenu(false); setPage('playlist-trader'); }}
+                  style={{ width:"100%", textAlign:"left", padding:"8px 12px", background:"none", border:"none", color:T.g100, fontSize:13, cursor:"pointer", borderRadius:7 }}
+                  onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.06)"} onMouseLeave={e=>e.currentTarget.style.background="none"}>Playlist Trader</button>
                 <button onClick={() => { setShowUserMenu(false); setSection("profile"); }}
                   style={{ width:"100%", textAlign:"left", padding:"8px 12px", background:"none", border:"none", color:T.g100, fontSize:13, cursor:"pointer", borderRadius:7 }}
                   onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.06)"} onMouseLeave={e=>e.currentTarget.style.background="none"}>Profile</button>
@@ -97,7 +133,7 @@ export default function CuratorDashboard({ setPage }) {
             <nav style={{ padding:"12px 10px", flex:1 }}>
               <div style={{ fontSize:9.5, fontWeight:800, color:T.g400, letterSpacing:".1em", textTransform:"uppercase", padding:"8px 8px 4px" }}>Curator</div>
               {NAV.map(it => (
-                <button key={it.id} className={`sni ${section===it.id?"act":""}`} onClick={() => setSection(it.id)}>
+                <button key={it.id} type="button" data-coach={it.coach || undefined} className={`sni ${section===it.id?"act":""}`} onClick={() => selectNav(it.id)}>
                   <span style={{ fontSize:13 }}>{it.icon}</span>{it.label}
                 </button>
               ))}
@@ -115,7 +151,7 @@ export default function CuratorDashboard({ setPage }) {
           {isMobile && (
             <div className="scroll-x" style={{ display:"flex", gap:6, marginBottom:18 }}>
               {NAV.slice(0,3).map(it => (
-                <button key={it.id} className={`chip ${section===it.id?"csel":"cb"}`} onClick={() => setSection(it.id)} style={{ flexShrink:0 }}>{it.icon} {it.label}</button>
+                <button key={it.id} type="button" data-coach={it.coach || undefined} className={`chip ${section===it.id?"csel":"cb"}`} onClick={() => selectNav(it.id)} style={{ flexShrink:0 }}>{it.icon} {it.label}</button>
               ))}
             </div>
           )}
@@ -124,8 +160,16 @@ export default function CuratorDashboard({ setPage }) {
       </div>
 
       {isMobile && drawer && (
-        <MobileDrawer items={NAV} section={section} setSection={setSection} wallet={0} onClose={() => setDrawer(false)} label="Curator" />
+        <MobileDrawer items={NAV} section={section} setSection={selectNav} wallet={0} onClose={() => setDrawer(false)} label="Curator" />
       )}
+
+      <OnboardingCoach
+        steps={CURATOR_COACH_STEPS}
+        active={showCuratorCoach}
+        stepIndex={curatorCoachStep}
+        onSetStep={(n) => persistCuratorCoachStep(n)}
+        onDismiss={dismissCuratorCoach}
+      />
     </div>
   );
 }

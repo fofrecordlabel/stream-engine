@@ -15,6 +15,8 @@ import CuratorDashboard  from './pages/CuratorDashboard.jsx'
 import AdminDashboard    from './pages/AdminDashboard.jsx'
 import ArtistOnboardingPage from './pages/ArtistOnboardingPage.jsx'
 import CuratorOnboardingPage from './pages/CuratorOnboardingPage.jsx'
+import ToolsPage         from './pages/ToolsPage.jsx'
+import PlaylistTraderPage from './pages/PlaylistTraderPage.jsx'
 import SubmitSongPage    from './pages/SubmitSongPage.jsx'
 import SubmitPlaylistPage from './pages/SubmitPlaylistPage.jsx'
 import SettingsPage      from './pages/SettingsPage.jsx'
@@ -29,7 +31,7 @@ import SupabaseRequiredScreen from './components/SupabaseRequiredScreen.jsx'
 import GlobalSeo from './components/GlobalSeo.jsx'
 
 /* ── Public pages (no auth required) ── */
-const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','subscriptions','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
+const PUBLIC_PAGES = new Set(['home','get-started','auth','signup','join','invite','pricing','subscriptions','tools','playlist-trader','submit-song','submit-playlist','blog','blog-post','terms','privacy','contact','faq','how-it-works','checkout-success','checkout-cancel'])
 
 const POST_AUTH_RETURN_PAGES = new Set(['artist', 'curator', 'admin', 'settings', 'submit-song', 'submit-playlist', 'subscriptions'])
 
@@ -49,6 +51,8 @@ const PAGES = {
   contact:          ContactPage,
   faq:              FAQPage,
   'how-it-works':   HowItWorksPage,
+  tools:            ToolsPage,
+  'playlist-trader': PlaylistTraderPage,
   'onboarding-artist': ArtistOnboardingPage,
   'onboarding-curator': CuratorOnboardingPage,
   artist:           ArtistDashboard,

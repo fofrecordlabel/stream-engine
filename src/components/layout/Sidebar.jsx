@@ -18,7 +18,7 @@ export function MobileDrawer({ items, section, setSection, wallet, onClose, labe
           </div>
           <div style={{ fontSize:9.5, fontWeight:800, color:T.g400, letterSpacing:".1em", textTransform:"uppercase", padding:"8px 8px 4px" }}>{label}</div>
           {items.map(it => (
-            <button key={it.id} className={`sni ${section === it.id ? "act" : ""}`} onClick={() => { setSection(it.id); onClose(); }}>
+            <button key={it.id} type="button" data-coach={it.coach || undefined} className={`sni ${section === it.id ? "act" : ""}`} onClick={() => { setSection(it.id); onClose(); }}>
               <span style={{ fontSize:14 }}>{it.icon}</span>{it.label}
             </button>
           ))}
@@ -34,7 +34,7 @@ export function DesktopSide({ items, section, setSection, wallet, label = "Artis
       <nav style={{ padding:"12px 10px", flex:1 }}>
         <div style={{ fontSize:9.5, fontWeight:800, color:T.g400, letterSpacing:".1em", textTransform:"uppercase", padding:"8px 8px 4px" }}>{label}</div>
         {items.map(it => (
-          <button key={it.id} className={`sni ${section === it.id ? "act" : ""}`} onClick={() => setSection(it.id)}>
+          <button key={it.id} type="button" data-coach={it.coach || undefined} className={`sni ${section === it.id ? "act" : ""}`} onClick={() => setSection(it.id)}>
             <span style={{ fontSize:13 }}>{it.icon}</span>{it.label}
           </button>
         ))}
@@ -43,7 +43,7 @@ export function DesktopSide({ items, section, setSection, wallet, label = "Artis
         <div style={{ background:T.gnGl, border:`1px solid ${T.gnB}`, borderRadius:12, padding:"13px 14px" }}>
           <div style={{ fontSize:9.5, fontWeight:800, color:"rgba(127,255,0,.55)", letterSpacing:".07em", textTransform:"uppercase", marginBottom:4 }}>Wallet</div>
           <div style={{ marginBottom:8 }}><CreditPill n={wallet} large /></div>
-          <button className="bp" onClick={onBuyCredits} style={{ width:"100%", padding:"9px 0", fontSize:12, borderRadius:8 }}>Buy Credits</button>
+          <button type="button" className="bp" data-coach="coach-wallet-buy" onClick={onBuyCredits} style={{ width:"100%", padding:"9px 0", fontSize:12, borderRadius:8 }}>Buy Credits</button>
         </div>
       </div>
     </aside>

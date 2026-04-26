@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { MobileDrawer, DesktopSide } from '../components/layout/Sidebar.jsx'
+import OnboardingCoach from '../components/onboarding/OnboardingCoach.jsx'
 import { SongsSection, ArtistSubmissionsPage, BillingSection, SubmissionBuilder } from '../components/artist/index.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
@@ -14,11 +15,18 @@ import { hasBlockingActiveCampaignForSong } from '../lib/dedupeRules.js'
 import { countCampaignsSinceLocalWeekMonday, getArtistWeeklySubmissionCap } from '../lib/submissionQuota.js'
 
 const NAV = [
-  { id:"songs",       icon:"🎵", label:"My Songs"   },
-  { id:"submissions", icon:"📋", label:"Campaigns"  },
-  { id:"billing",     icon:"💳", label:"Credits"    },
+  { id:"songs",       icon:"🎵", label:"My Songs",   coach:"coach-songs" },
+  { id:"submissions", icon:"📋", label:"Campaigns", coach:"coach-submissions" },
+  { id:"billing",     icon:"💳", label:"Credits",    coach:"coach-billing" },
   { id:"analytics",   icon:"📊", label:"Analytics"  },
   { id:"settings",    icon:"⚙",  label:"Settings"   },
+]
+
+const ARTIST_COACH_STEPS = [
+  { selector: '[data-coach="coach-songs"]', title: 'Your song library', body: 'Add tracks from Spotify, then launch campaigns to verified curators from here.' },
+  { selector: '[data-coach="coach-submissions"]', title: 'Campaigns', body: 'Track pending and approved submissions, spend, and outcomes in one place.' },
+  { selector: '[data-coach="coach-billing"]', title: 'Credits', body: 'Buy credit packs to submit. Your balance stays in sync after checkout.' },
+  { selector: '[data-coach="coach-wallet-buy"]', title: 'Top up quickly', body: 'Use Buy Credits from the sidebar whenever you need more runway.' },
 ]
 
 const SESSION_NAV_SECTION = 'se_artist_section'
@@ -259,7 +267,7 @@ function AnalyticsSection() {
 /* ── Main dashboard ── */
 export default function ArtistDashboard({ setPage }) {
   const toast = useToast()
-  const { user, role, credits, spendCredits, addCredits, signOut } = useAuth()
+  const { user, role, credits, spendCredits, addCredits, signOut, patchProfile } = useAuth()
   const { songs, setSongs, loading: songsLoading, addSong, removeSong, incrementSubmissions } = useSongs(user?.id)
   const { campaigns, loading: campaignsLoading, error: campaignsError, createCampaign } = useCampaigns(user?.id, 'artist')
 
@@ -269,6 +277,23 @@ export default function ArtistDashboard({ setPage }) {
   const [scrolled,   setScrolled] = useState(false)
   const [isMobile,   setIsMobile] = useState(window.innerWidth < 700)
   const [restoringDraft, setRestoringDraft] = useState(false)
+
+  const coachStep = Number(user?.profile?.onboarding_step ?? 0)
+  const coachDismissed = Boolean(user?.profile?.onboarding_coach_dismissed_at)
+  const showArtistCoach = role === 'artist' && !coachDismissed && coachStep < ARTIST_COACH_STEPS.length
+
+  const persistCoachStep = async (n) => {
+    const { error } = await patchProfile({ onboarding_step: n })
+    if (error) toast.error(error.message || 'Could not save tour progress', 'Tour')
+  }
+
+  const dismissArtistCoach = async () => {
+    const { error } = await patchProfile({
+      onboarding_coach_dismissed_at: new Date().toISOString(),
+      onboarding_step: ARTIST_COACH_STEPS.length,
+    })
+    if (error) toast.error(error.message || 'Could not dismiss tour', 'Tour')
+  }
 
   const selectNav = (id) => {
     if (id === 'settings') {
@@ -493,7 +518,7 @@ export default function ArtistDashboard({ setPage }) {
           {isMobile && (
             <div className="scroll-x" style={{ display:'flex', gap:6, marginBottom:18 }}>
               {NAV.map(t => (
-                <button key={t.id} type="button" className={`chip ${section===t.id?'csel':'cb'}`}
+                <button key={t.id} type="button" data-coach={t.coach || undefined} className={`chip ${section===t.id?'csel':'cb'}`}
                   onClick={() => selectNav(t.id)} style={{ flexShrink:0 }}>
                   {t.label}
                 </button>
@@ -520,6 +545,14 @@ export default function ArtistDashboard({ setPage }) {
         <MobileDrawer items={NAV} section={section} setSection={selectNav}
           wallet={wallet} onClose={() => setDrawer(false)} />
       )}
+
+      <OnboardingCoach
+        steps={ARTIST_COACH_STEPS}
+        active={showArtistCoach}
+        stepIndex={coachStep}
+        onSetStep={(n) => { void persistCoachStep(n) }}
+        onDismiss={() => { void dismissArtistCoach() }}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { T } from '../tokens.js'
 import NavBar from '../components/layout/NavBar.jsx'
 import { BrandMark, STREAM_ENGINE_LOGO_SRC } from '../components/common/Logo.jsx'
@@ -7,12 +7,14 @@ import HeroSpotifySearch from '../components/home/HeroSpotifySearch.jsx'
 import { GENRES, FAQS_DATA } from '../data/index.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { clearGuestPendingOncePerBrowserSession } from '../lib/pendingSubmission.js'
+import { supabase, isDemo } from '../lib/supabase.js'
 
 export default function HomePage({ setPage }) {
   const { isLoggedIn, loading } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [genre, setGenre] = useState('All')
   const [openFaq, setOpenFaq] = useState(null)
+  const [displayCurators, setDisplayCurators] = useState([])
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60)
@@ -25,6 +27,44 @@ export default function HomePage({ setPage }) {
     if (loading || isLoggedIn) return
     clearGuestPendingOncePerBrowserSession()
   }, [loading, isLoggedIn])
+
+  useEffect(() => {
+    if (isDemo || !supabase) {
+      setDisplayCurators([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('curator_profiles')
+        .select('id, display_name, artwork, color, verified, genres, follower_count, response_rate, price_credits, open_for_submissions')
+        .eq('open_for_submissions', true)
+        .order('verified', { ascending: false })
+        .limit(48)
+      if (cancelled) return
+      if (error || !data) {
+        setDisplayCurators([])
+        return
+      }
+      setDisplayCurators(
+        data.map((row) => ({
+          id: row.id,
+          name: row.display_name || 'Curator',
+          artwork: row.artwork || '🎵',
+          color: row.color || '#7fff00',
+          verified: !!row.verified,
+          genres: Array.isArray(row.genres) ? row.genres : [],
+          genre: (Array.isArray(row.genres) && row.genres[0]) || 'Various',
+          followers: row.follower_count ?? 0,
+          responseRate: row.response_rate ?? 85,
+          credits: row.price_credits ?? 2,
+        })),
+      )
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const goPricingPage = () => setPage('subscriptions')
 
@@ -40,7 +80,10 @@ export default function HomePage({ setPage }) {
     }
   }
 
-  const displayCurators = []
+  const filteredCurators = useMemo(() => {
+    if (genre === 'All') return displayCurators
+    return displayCurators.filter((c) => (c.genres && c.genres.includes(genre)) || c.genre === genre)
+  }, [displayCurators, genre])
 
   return (
     <div style={{ background: T.bg, color: T.w, minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
@@ -169,7 +212,7 @@ export default function HomePage({ setPage }) {
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
-            {displayCurators.map((c) => (
+            {filteredCurators.map((c) => (
               <div
                 key={c.id}
                 onClick={startCampaign}
@@ -203,7 +246,7 @@ export default function HomePage({ setPage }) {
               </div>
             ))}
           </div>
-          {displayCurators.length === 0 ? (
+          {filteredCurators.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '42px 18px', border: `1px dashed ${T.b1}`, borderRadius: 16, color: T.g300, marginTop: 10 }}>
               <div style={{ fontSize: 34, marginBottom: 10 }}>🎧</div>
               <div style={{ fontWeight: 800, fontSize: 14.5, marginBottom: 6 }}>Curator marketplace is coming soon</div>

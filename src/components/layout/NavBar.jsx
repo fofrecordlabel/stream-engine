@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { T } from '../../tokens.js'
 import { BrandMark } from '../common/Logo.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { supabase, isDemo } from '../../lib/supabase.js'
 import { isSpotifyConnected } from '../../lib/spotifyAuth.js'
 import { useLang, LANGS } from '../../context/LangContext.jsx'
 import AdminGateModal from '../admin/AdminGateModal.jsx'
@@ -107,8 +108,12 @@ export default function NavBar({ setPage, scrolled = false }) {
   const [userOpen,   setUserOpen]   = useState(false)
   const [adminGateOpen, setAdminGateOpen] = useState(false)
   const [adminUnlocked, setAdminUnlocked] = useState(isAdminUnlocked())
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifRows, setNotifRows] = useState([])
+  const [notifUnread, setNotifUnread] = useState(0)
   const submitRef = useRef(null)
   const userRef   = useRef(null)
+  const notifRef  = useRef(null)
   const spotifyOk = isSpotifyConnected()
 
   /* close dropdowns on outside click */
@@ -116,10 +121,37 @@ export default function NavBar({ setPage, scrolled = false }) {
     const fn = (e) => {
       if (submitRef.current && !submitRef.current.contains(e.target)) setSubmitOpen(false)
       if (userRef.current   && !userRef.current.contains(e.target))   setUserOpen(false)
+      if (notifRef.current  && !notifRef.current.contains(e.target))  setNotifOpen(false)
     }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
   }, [])
+
+  const loadNotifications = async () => {
+    if (isDemo || !supabase || !isLoggedIn) {
+      setNotifRows([])
+      setNotifUnread(0)
+      return
+    }
+    const { data } = await supabase
+      .from('notifications')
+      .select('id, kind, title, body, meta, read_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    const rows = data || []
+    setNotifRows(rows)
+    setNotifUnread(rows.filter((r) => !r.read_at).length)
+  }
+
+  useEffect(() => {
+    void loadNotifications()
+  }, [isLoggedIn]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const markNotifRead = async (row) => {
+    if (isDemo || !supabase || !row?.id || row.read_at) return
+    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', row.id)
+    void loadNotifications()
+  }
 
   useEffect(() => {
     const sync = () => setAdminUnlocked(isAdminUnlocked())
@@ -218,6 +250,96 @@ export default function NavBar({ setPage, scrolled = false }) {
 
           {isLoggedIn ? (
             <>
+              <div ref={notifRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  aria-label="Notifications"
+                  onClick={() => {
+                    setNotifOpen((o) => !o)
+                    void loadNotifications()
+                  }}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    border: `1px solid ${T.b0}`,
+                    background: notifOpen ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)',
+                    color: T.g200,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                    position: 'relative',
+                  }}
+                >
+                  🔔
+                  {notifUnread > 0 ? (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 5,
+                        minWidth: 8,
+                        height: 8,
+                        borderRadius: 99,
+                        background: T.red,
+                        boxShadow: `0 0 0 2px ${T.bg}`,
+                      }}
+                    />
+                  ) : null}
+                </button>
+                {notifOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: 320,
+                      maxHeight: 380,
+                      overflowY: 'auto',
+                      background: '#0f0f14',
+                      border: `1px solid ${T.b1}`,
+                      borderRadius: 14,
+                      padding: 8,
+                      zIndex: 500,
+                      boxShadow: '0 24px 60px rgba(0,0,0,.8)',
+                    }}
+                  >
+                    {notifRows.length === 0 ? (
+                      <div style={{ padding: '14px 12px', fontSize: 13, color: T.g300 }}>No notifications yet.</div>
+                    ) : (
+                      notifRows.map((n) => (
+                        <button
+                          type="button"
+                          key={n.id}
+                          onClick={() => {
+                            void markNotifRead(n)
+                            if (String(n.kind || '').startsWith('trader_')) setPage('playlist-trader')
+                            setNotifOpen(false)
+                          }}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '10px 10px',
+                            borderRadius: 10,
+                            border: 'none',
+                            background: n.read_at ? 'transparent' : 'rgba(127,255,0,.06)',
+                            cursor: 'pointer',
+                            marginBottom: 4,
+                          }}
+                        >
+                          <div style={{ fontSize: 12.5, fontWeight: 800, color: T.w, marginBottom: 3 }}>{n.title}</div>
+                          {n.body ? <div style={{ fontSize: 12, color: T.g300, lineHeight: 1.45 }}>{n.body}</div> : null}
+                          <div style={{ fontSize: 10, color: T.g400, marginTop: 4 }}>{String(n.created_at || '').slice(0, 16).replace('T', ' ')}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Credits chip — artists */}
               {role === 'artist' && (
                 <button onClick={() => setPage('artist')}

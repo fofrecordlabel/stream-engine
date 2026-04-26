@@ -60,6 +60,16 @@ export function AuthProvider({ children }) {
     if (session?.user) await loadProfile(session.user)
   }, [loadProfile])
 
+  const patchProfile = useCallback(async (patch) => {
+    if (isDemo || !supabase) return { error: noCloud() }
+    const { data: { session } } = await supabase.auth.getSession()
+    const uid = session?.user?.id
+    if (!uid) return { error: { message: 'Not signed in' } }
+    const { error } = await supabase.from('profiles').update(patch).eq('id', uid)
+    if (!error) await loadProfile(session.user)
+    return { error }
+  }, [loadProfile])
+
   /* ── Session init ── */
   useEffect(() => {
     if (isDemo) { setLoading(false); return }
@@ -212,6 +222,7 @@ export function AuthProvider({ children }) {
       requestPasswordReset,
       updatePassword,
       refreshProfile,
+      patchProfile,
       addCredits, spendCredits,
       setCredits,
     }}>
