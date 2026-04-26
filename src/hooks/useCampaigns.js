@@ -104,6 +104,15 @@ export function useCampaigns(userId, role = 'artist') {
     }))
     await supabase.from('submissions').insert(subRows)
 
+    // Kick off DailyPlaylists-style auto-add (best-effort; logs attempts server-side).
+    try {
+      if (supabase?.functions) {
+        await supabase.functions.invoke('spotify-auto-add', { body: { campaign_id: camp.id } })
+      }
+    } catch {
+      // ignore — gated by curator connection + playlist eligibility
+    }
+
     setCampaigns(p => [camp, ...p])
     return { data: camp, error: null }
   }

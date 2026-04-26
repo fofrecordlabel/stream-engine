@@ -18,6 +18,7 @@
  */
 
 import { env } from './env.js'
+import { supabase, isDemo } from './supabase.js'
 
 const CLIENT_ID = env.spotifyClientId || ''
 const REDIRECT_URI = window.location.origin   // SPA — Spotify redirects back to root with ?code=
@@ -184,6 +185,25 @@ export async function handleSpotifyCallback() {
     return { error: 'State mismatch — possible CSRF' }
   }
 
+  sessionStorage.removeItem(VERIFIER_KEY)
+  sessionStorage.removeItem(STATE_KEY)
+  window.history.replaceState({}, '', window.location.pathname)
+  sessionStorage.removeItem(OAUTH_PENDING_KEY)
+  sessionStorage.removeItem(OAUTH_STARTED_AT_KEY)
+
+  // Prefer server-side storage for auto-add gates (Edge Function). Fall back to local storage if unavailable.
+  if (!isDemo && supabase?.functions) {
+    const { data, error: fnErr } = await supabase.functions.invoke('spotify-connect', {
+      body: { code, code_verifier: verifier || '', redirect_uri: REDIRECT_URI },
+    })
+    if (!fnErr && data?.ok) {
+      // Keep a lightweight "connected" flag locally for UI only.
+      saveToken({ access_token: 'server', refresh_token: null, expires_in: 3600 })
+      return { token: { access_token: 'server' }, error: null }
+    }
+  }
+
+  // Fallback: browser-only token exchange (no auto-add on server).
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -195,18 +215,10 @@ export async function handleSpotifyCallback() {
       code_verifier: verifier || '',
     }),
   })
-
-  sessionStorage.removeItem(VERIFIER_KEY)
-  sessionStorage.removeItem(STATE_KEY)
-  window.history.replaceState({}, '', window.location.pathname)
-  sessionStorage.removeItem(OAUTH_PENDING_KEY)
-  sessionStorage.removeItem(OAUTH_STARTED_AT_KEY)
-
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     return { error: err.error_description || `Token exchange failed (${res.status})` }
   }
-
   const token = await res.json()
   saveToken(token)
   return { token, error: null }

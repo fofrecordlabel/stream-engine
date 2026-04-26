@@ -3,7 +3,8 @@ import { T } from '../tokens.js'
 import { BrandMark } from '../components/common/Logo.jsx'
 import { supabase, isDemo } from '../lib/supabase.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { isSpotifyConnected } from '../lib/spotifyAuth.js'
+import { hasSpotifyClientId, isSpotifyConnected, startSpotifyAuth } from '../lib/spotifyAuth.js'
+import { extractPlaylistId } from '../lib/spotify.js'
 
 const GENRE_OPTS = ['Hip-Hop', 'R&B', 'Electronic', 'Indie', 'Pop', 'Lo-Fi', 'Latin', 'Afrobeats', 'Soul']
 const PLATFORM_OPTS = ['Spotify', 'Apple Music', 'TikTok', 'Instagram', 'YouTube']
@@ -52,6 +53,8 @@ export default function CuratorOnboardingPage({ setPage }) {
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
   const [playlistSubCount, setPlaylistSubCount] = useState(null)
+  const [playlists, setPlaylists] = useState([])
+  const [gate, setGate] = useState({ active: true, allowed_genres: [], min_credits: 0, max_auto_add_per_day: 50 })
 
   const alreadyDone = !!user?.profile?.curator_onboarded
 
@@ -82,6 +85,7 @@ export default function CuratorOnboardingPage({ setPage }) {
   }
 
   const spotifyOk = isSpotifyConnected()
+  const spotifyConfigured = hasSpotifyClientId()
 
   const loadPlaylistSubmissionCount = async () => {
     if (!supabase || !user?.id) return
@@ -96,6 +100,80 @@ export default function CuratorOnboardingPage({ setPage }) {
     if (isDemo) return
     void loadPlaylistSubmissionCount()
   }, [user?.id])
+
+  const loadMyPlaylists = async () => {
+    if (!supabase || !user?.id) return
+    const { data } = await supabase
+      .from('curator_playlists')
+      .select('id,name,spotify_url,spotify_playlist_id,auto_add_enabled,genre,active')
+      .eq('curator_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+    setPlaylists(data || [])
+  }
+
+  const loadGate = async () => {
+    if (!supabase || !user?.id) return
+    const { data } = await supabase
+      .from('curator_submission_gates')
+      .select('*')
+      .eq('curator_id', user.id)
+      .maybeSingle()
+    if (data) {
+      setGate({
+        active: !!data.active,
+        allowed_genres: Array.isArray(data.allowed_genres) ? data.allowed_genres : [],
+        min_credits: Number(data.min_credits || 0),
+        max_auto_add_per_day: Number(data.max_auto_add_per_day || 50),
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (isDemo) return
+    if (!user?.id) return
+    void loadMyPlaylists()
+    void loadGate()
+  }, [user?.id])
+
+  const saveGate = async () => {
+    setErr('')
+    if (isDemo) return
+    if (!supabase || !user?.id) return
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('curator_submission_gates')
+        .upsert({
+          curator_id: user.id,
+          active: !!gate.active,
+          allowed_genres: gate.allowed_genres,
+          min_credits: Number(gate.min_credits || 0),
+          max_auto_add_per_day: Number(gate.max_auto_add_per_day || 50),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'curator_id' })
+      if (error) { setErr(error.message || 'Could not save gates'); return }
+      await loadGate()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleAutoAdd = async (pl) => {
+    setErr('')
+    if (isDemo) return
+    if (!supabase || !user?.id) return
+    const spotifyPlaylistId = pl.spotify_playlist_id || extractPlaylistId(pl.spotify_url) || null
+    const { error } = await supabase
+      .from('curator_playlists')
+      .update({
+        auto_add_enabled: !pl.auto_add_enabled,
+        spotify_playlist_id: spotifyPlaylistId,
+      })
+      .eq('id', pl.id)
+    if (error) { setErr(error.message || 'Could not update playlist'); return }
+    await loadMyPlaylists()
+  }
 
   const progress = useMemo(() => {
     const profileOk = !!String(form.display_name || '').trim() && String(form.bio || '').trim().length >= 30
@@ -282,16 +360,97 @@ export default function CuratorOnboardingPage({ setPage }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Card
               title="2) Connect Spotify"
-              desc="Optional but recommended: auto-insert tracks when you accept."
+              desc="Required for DailyPlaylists-style auto-insert. We request playlist write access."
               right={<div style={{ fontSize: 12, fontWeight: 900, color: progress.spotify ? '#1ed760' : T.g300 }}>{progress.spotify ? '✓ Connected' : 'Not connected'}</div>}
             >
               <div style={{ fontSize: 12.5, color: T.g200, lineHeight: 1.6 }}>
-                Connect from your Curator dashboard profile section.
+                Connect Spotify so submissions can auto-add to playlists you enable below.
               </div>
               <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button className="bp" onClick={() => setPage('curator')} style={{ padding: '10px 16px', fontSize: 13 }}>
-                  Go to Curator dashboard <span className="arr">→</span>
+                <button className="bp" disabled={!spotifyConfigured} onClick={() => void startSpotifyAuth()} style={{ padding: '10px 16px', fontSize: 13, opacity: spotifyConfigured ? 1 : 0.6 }}>
+                  {progress.spotify ? 'Reconnect Spotify' : 'Connect Spotify'} <span className="arr">→</span>
                 </button>
+                <button className="bt" onClick={loadMyPlaylists} style={{ padding: '10px 14px', fontSize: 13 }}>Refresh playlists</button>
+              </div>
+              {!spotifyConfigured && (
+                <div style={{ marginTop: 10, fontSize: 12, color: T.gold, lineHeight: 1.55 }}>
+                  Missing <span className="mono">VITE_SPOTIFY_CLIENT_ID</span>. Add it in Netlify env vars and redeploy.
+                </div>
+              )}
+
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.b0}` }}>
+                <div style={{ fontSize: 11, fontWeight: 900, color: T.g300, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>Auto-add eligible playlists</div>
+                {playlists.length === 0 ? (
+                  <div style={{ fontSize: 12.5, color: T.g300, lineHeight: 1.6 }}>
+                    No curator playlists yet. Add playlists in your Curator dashboard first.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {playlists.map((pl) => (
+                      <button
+                        key={pl.id}
+                        type="button"
+                        className="bt"
+                        onClick={() => void toggleAutoAdd(pl)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 10,
+                          padding: '10px 12px',
+                          borderRadius: 12,
+                          border: `1px solid ${T.b0}`,
+                          background: pl.auto_add_enabled ? 'rgba(127,255,0,.06)' : 'rgba(255,255,255,.02)',
+                          color: pl.auto_add_enabled ? T.gn : T.g200,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 900, fontSize: 13.5, color: T.w, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {pl.name || 'Playlist'}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: T.g300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {pl.spotify_playlist_id ? `Spotify ID: ${pl.spotify_playlist_id}` : (pl.spotify_url || 'No Spotify URL')}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: pl.auto_add_enabled ? T.gn : T.g300 }}>
+                          {pl.auto_add_enabled ? 'Enabled' : 'Disabled'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.b0}` }}>
+                <div style={{ fontSize: 11, fontWeight: 900, color: T.g300, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>Submission gates</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 900, color: T.g300, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>Min credits</div>
+                    <input style={input} value={String(gate.min_credits)} onChange={(e) => setGate((p) => ({ ...p, min_credits: parseInt(e.target.value || '0', 10) || 0 }))} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 900, color: T.g300, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>Max auto-add/day</div>
+                    <input style={input} value={String(gate.max_auto_add_per_day)} onChange={(e) => setGate((p) => ({ ...p, max_auto_add_per_day: parseInt(e.target.value || '50', 10) || 50 }))} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: 11, fontWeight: 900, color: T.g300, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>Allowed genres (empty = allow all)</div>
+                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                      {GENRE_OPTS.map((g) => (
+                        <Chip key={g} on={gate.allowed_genres.includes(g)} label={g} onClick={() => setGate((p) => ({ ...p, allowed_genres: p.allowed_genres.includes(g) ? p.allowed_genres.filter((x) => x !== g) : [...p.allowed_genres, g] }))} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button className="bp" disabled={saving} onClick={() => void saveGate()} style={{ padding: '10px 16px', fontSize: 13, opacity: saving ? 0.7 : 1 }}>
+                    {saving ? 'Saving…' : 'Save gates →'}
+                  </button>
+                  <div style={{ fontSize: 12.5, color: T.g300 }}>
+                    Gate rules control which submissions get auto-added.
+                  </div>
+                </div>
               </div>
             </Card>
 

@@ -110,6 +110,15 @@ export default function OnboardingCoach({ steps, active, stepIndex, onSetStep, o
           pointerEvents: 'auto',
         }}
       >
+        <button
+          type="button"
+          className="bt"
+          aria-label="Close tour"
+          onClick={onDismiss}
+          style={{ position: 'absolute', top: 10, right: 10, padding: '7px 9px', fontSize: 12 }}
+        >
+          ✕
+        </button>
         <div style={{ fontSize: 10, fontWeight: 900, color: T.g300, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 8 }}>
           Quick tour · {stepIndex + 1} / {steps.length}
         </div>
