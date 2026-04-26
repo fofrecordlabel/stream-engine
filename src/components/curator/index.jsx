@@ -259,17 +259,69 @@ const TABS = [
 ];
 
 export function CuratorInboxSection() {
-  const [submissions] = useState([]);
+  const { user } = useAuth()
+  const [submissions, setSubmissions] = useState([]);
   const [tab,         setTab]         = useState("new");
   const [acceptModal, setAcceptModal] = useState(null);
   const [changesModal, setChangesModal] = useState(null);
   const [expanded,    setExpanded]    = useState(null);
 
-  const myPlaylists = [
-    { id:"pl1", name:"Hip-Hop Essentials", genre:"Hip-Hop",    followers:"8.2K" },
-    { id:"pl2", name:"Late Night Vibes",   genre:"R&B",        followers:"4.1K" },
-    { id:"pl3", name:"Friday Bangers",     genre:"Pop",        followers:"12K"  },
-  ];
+  const [myPlaylists, setMyPlaylists] = useState([])
+
+  useEffect(() => {
+    if (isDemo || !supabase || !user?.id) return
+    let cancelled = false
+    const run = async () => {
+      const { data } = await supabase
+        .from('submissions')
+        .select(`
+          *,
+          campaigns (
+            id, status, created_at,
+            songs ( id, title, artist_name, genre, artwork_url, spotify_url, preview_url )
+          )
+        `)
+        .eq('curator_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (cancelled) return
+      const rows = (data || []).map((s) => ({
+        id: s.id,
+        status: s.status || 'new',
+        type: 'free',
+        payout: Number(s.payout || 0),
+        dueDate: s.due_date || '',
+        date: String(s.created_at || '').slice(0, 10),
+        genre: s?.campaigns?.songs?.genre || '—',
+        songTitle: s?.campaigns?.songs?.title || 'Song',
+        artist: s?.campaigns?.songs?.artist_name || 'Artist',
+        spotifyUrl: s?.campaigns?.songs?.spotify_url || null,
+        previewUrl: s?.campaigns?.songs?.preview_url || null,
+        notes: s?.notes || null,
+        playlist: s?.playlist_assigned || null,
+        credits: s?.credits || 0,
+      }))
+      setSubmissions(rows)
+    }
+    run()
+    return () => { cancelled = true }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (isDemo || !supabase || !user?.id) return
+    let cancelled = false
+    const run = async () => {
+      const { data } = await supabase
+        .from('curator_playlists')
+        .select('id, name, genre, follower_count')
+        .eq('curator_id', user.id)
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+      if (!cancelled) setMyPlaylists(data || [])
+    }
+    run()
+    return () => { cancelled = true }
+  }, [user?.id])
 
   const updateStatus = (id, status, playlist = null, notes = null) =>
     setSubmissions(p => p.map(s => {

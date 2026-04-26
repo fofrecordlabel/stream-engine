@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { T } from '../../tokens.js'
 import { BrandMark } from '../common/Logo.jsx'
+import AnnouncementBar from '../common/AnnouncementBar.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase, isDemo } from '../../lib/supabase.js'
 import { isSpotifyConnected } from '../../lib/spotifyAuth.js'
@@ -496,6 +497,7 @@ export default function NavBar({ setPage, scrolled = false }) {
 
       </div>
     </nav>
+    <AnnouncementBar setPage={setPage} />
     <AdminGateModal
       open={adminGateOpen}
       onClose={() => setAdminGateOpen(false)}

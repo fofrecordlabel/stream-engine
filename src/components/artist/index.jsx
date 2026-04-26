@@ -1173,7 +1173,19 @@ export function SubmissionBuilder({ song, campaigns = [], onBack, wallet, setWal
 /* ── ArtistSubmissionsPage ── */
 export function ArtistSubmissionsPage({ onSubmitAgain, campaigns = [], loading = false, error = '' }) {
   const [expanded, setExpanded] = useState({});
+  const [autoAddByCampaign, setAutoAddByCampaign] = useState({})
   const toggleExpand = id => setExpanded(p => ({ ...p, [id]: !p[id] }));
+  const loadAutoAdds = async (campaignId) => {
+    if (isDemo || !supabase || !campaignId) return
+    if (autoAddByCampaign[campaignId]) return
+    const { data } = await supabase
+      .from('spotify_auto_add_attempts')
+      .select('id, curator_id, playlist_id, spotify_playlist_id, spotify_track_id, status, reason, created_at')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setAutoAddByCampaign((p) => ({ ...p, [campaignId]: data || [] }))
+  }
   if (loading) {
     return (
       <div>
@@ -1277,7 +1289,7 @@ export function ArtistSubmissionsPage({ onSubmitAgain, campaigns = [], loading =
                   </div>
                   <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                     <button className="bp" onClick={() => onSubmitAgain({ songId: entry.song_id || entry.songId || entry.songs?.id, song: songTitle, artist: artistName, bg:'#050506', ac:T.gn })} style={{ padding:"9px 16px", fontSize:13, borderRadius:9 }}>Submit Again <span className="arr">→</span></button>
-                    <button className="bs" onClick={() => toggleExpand(entry.id)} style={{ padding:"9px 12px", fontSize:13, borderRadius:9 }}>{isOpen?"↑":"↓"}</button>
+                    <button className="bs" onClick={() => { toggleExpand(entry.id); if (!isOpen) void loadAutoAdds(entry.id) }} style={{ padding:"9px 12px", fontSize:13, borderRadius:9 }}>{isOpen?"↑":"↓"}</button>
                   </div>
                 </div>
               </div>
@@ -1311,6 +1323,33 @@ export function ArtistSubmissionsPage({ onSubmitAgain, campaigns = [], loading =
                         ))}
                       </div>
                     )}
+
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize:10, fontWeight:800, color:T.g300, letterSpacing:".08em", textTransform:"uppercase", marginBottom:8 }}>Auto-add to curator playlists</div>
+                      {(autoAddByCampaign[entry.id]?.length ?? 0) === 0 ? (
+                        <div style={{ fontSize: 12.5, color: T.g400, lineHeight: 1.55 }}>
+                          No auto-add activity logged yet. (Curators must connect Spotify and enable auto-add on their playlists.)
+                        </div>
+                      ) : (
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          {autoAddByCampaign[entry.id].slice(0, 12).map((a) => (
+                            <div key={a.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 13px', background:'rgba(255,255,255,.03)', border:`1px solid ${T.b0}`, borderRadius:10, flexWrap:'wrap' }}>
+                              <div style={{ minWidth: 200 }}>
+                                <div style={{ fontWeight:800, fontSize:12.5, color:T.w }}>
+                                  {String(a.status || 'queued').toUpperCase()}
+                                </div>
+                                <div style={{ fontSize:11.5, color:T.g400 }}>
+                                  {a.reason ? a.reason : (a.status === 'success' ? 'Added to playlist.' : '')}
+                                </div>
+                              </div>
+                              <div style={{ fontSize:11.5, color:T.g400 }}>
+                                {(a.created_at || '').toString().slice(0, 19).replace('T', ' ')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
