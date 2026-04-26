@@ -13,6 +13,8 @@ import AuthPage          from './pages/AuthPage.jsx'
 import ArtistDashboard   from './pages/ArtistDashboard.jsx'
 import CuratorDashboard  from './pages/CuratorDashboard.jsx'
 import AdminDashboard    from './pages/AdminDashboard.jsx'
+import ArtistOnboardingPage from './pages/ArtistOnboardingPage.jsx'
+import CuratorOnboardingPage from './pages/CuratorOnboardingPage.jsx'
 import SubmitSongPage    from './pages/SubmitSongPage.jsx'
 import SubmitPlaylistPage from './pages/SubmitPlaylistPage.jsx'
 import SettingsPage      from './pages/SettingsPage.jsx'
@@ -47,6 +49,8 @@ const PAGES = {
   contact:          ContactPage,
   faq:              FAQPage,
   'how-it-works':   HowItWorksPage,
+  'onboarding-artist': ArtistOnboardingPage,
+  'onboarding-curator': CuratorOnboardingPage,
   artist:           ArtistDashboard,
   curator:          CuratorDashboard,
   admin:            AdminDashboard,
@@ -178,6 +182,19 @@ function AppInner() {
     if (dest === 'pricing') { setPage('subscriptions'); return }
     setPage(dest)
   }, [isLoggedIn, role])
+
+  // First-time onboarding gate (role-specific).
+  useEffect(() => {
+    if (loading || !isLoggedIn || !user?.profile) return
+    if (page === 'onboarding-artist' || page === 'onboarding-curator') return
+    if (role === 'artist' && !user.profile.artist_onboarded) {
+      setPage('onboarding-artist')
+      return
+    }
+    if (role === 'curator' && !user.profile.curator_onboarded) {
+      setPage('onboarding-curator')
+    }
+  }, [loading, isLoggedIn, role, user?.profile, page])
 
   // Initial path handling: support /signup, /join, /invite deep links.
   useEffect(() => {
